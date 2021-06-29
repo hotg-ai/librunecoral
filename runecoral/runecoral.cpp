@@ -2,95 +2,143 @@ extern "C" {
     #include "runecoral.h"
 }
 
-#include <iostream>
 #include <string>
-#include <cstdio>
-#include <fstream>
 #include <vector>
+#include <algorithm>
 
 #include "absl/flags/flag.h"
 #include "absl/flags/parse.h"
 #include "coral/classification/adapter.h"
 #include "coral/tflite_utils.h"
+#include "tensorflow/lite/c/common.h"
 #include "tensorflow/lite/interpreter.h"
 #include "absl/strings/ascii.h"
 #include "absl/strings/numbers.h"
 #include "absl/strings/str_split.h"
 #include "glog/logging.h"
 
-Model *load(const char *mimetype, const void *model, int model_len) {
-    return nullptr;
-}
+static const std::string TFLITE_MIME_TYPE = "application/tflite-model";
 
-// Run inference on
-InferenceResult infer(Model *model, const Tensor *inputs, int num_inputs,
-                      const Tensor *outputs, int num_outputs) {
+InferenceResult compare_tensors(const Tensor &runeTensor, const TfLiteTensor &tfLiteTensor) {
+    // FIXME: Missing tflite types in ElementType: Fix me.
+    //   kTfLiteNoType = 0,
+    //   kTfLiteInt64 = 4,
+    //   kTfLiteString = 5,
+    //   kTfLiteBool = 6,
+    //   kTfLiteComplex64 = 8,
+    //   kTfLiteComplex128 = 12,
+    // Once we sync up the types, the comparison could simply be a int cast
+    // Missing ElementType in TFLiteType
+    // u16, u32
+    ElementType e = runeTensor.type;
+    TfLiteType t = tfLiteTensor.type;
+    if (!((e == u8 && t == kTfLiteUInt8) || (e == i8 && t == kTfLiteInt8)
+         || (e == i16 && t == kTfLiteInt16)
+         || (e == i32 && t == kTfLiteInt32)
+         || (e == f32 && t == kTfLiteFloat32) || (e == f64 && t == kTfLiteFloat64))) {
+        return IncorrectArgumentTypes;
+    }
+
+    if (runeTensor.rank != tfLiteTensor.dims->size) {
+        return IncorrectArgumentSizes;
+    }
+
+    for (int i = 0; i < runeTensor.rank; i ++) {
+        if (runeTensor.shape[i] != tfLiteTensor.dims->data[i]) {
+            return IncorrectArgumentSizes;
+        }
+    }
+
     return Ok;
 }
 
-ABSL_FLAG(std::string, model_path, "mobilenet_v1_1.0_224_quant_edgetpu.tflite",
-          "Path to the tflite model.");
-ABSL_FLAG(std::string, image_path, "cat.rgb",
-          "Path to the image to be classified. The input image size must match "
-          "the input size of the model and the image must be stored as RGB "
-          "pixel array.");
-ABSL_FLAG(std::string, labels_path, "imagenet_labels.txt",
-          "Path to the imagenet labels.");
+struct Model {
+    std::unique_ptr<tflite::FlatBufferModel> model;
+    std::shared_ptr<edgetpu::EdgeTpuContext> edgetpu_context;
+    std::unique_ptr<tflite::Interpreter> interpreter;
+};
 
-namespace coral { // Coral examples' file utils because it is private by default
-    std::unordered_map<int, std::string> ReadLabelFile(const std::string& file_path) {
-        std::unordered_map<int, std::string> labels;
-        std::ifstream file(file_path.c_str());
-        CHECK(file) << "Cannot open " << file_path;
-
-        std::string line;
-        while (std::getline(file, line)) {
-            absl::RemoveExtraAsciiWhitespace(&line);
-            std::vector<std::string> fields = absl::StrSplit(line, absl::MaxSplits(' ', 1));
-            if (fields.size() == 2) {
-                int label_id;
-                CHECK(absl::SimpleAtoi(fields[0], &label_id));
-                const std::string& label_name = fields[1];
-                labels[label_id] = label_name;
-            }
-        }
-
-        return labels;
+Model *load(const char *mimetype, const void *model, int model_len) {
+    if (mimetype != TFLITE_MIME_TYPE) {
+        return nullptr;
     }
-    
-    void ReadFileToOrDie(const std::string& file_path, char* data, size_t size) {
-        std::ifstream file(file_path, std::ios::binary);
-        CHECK(file) << "Cannot open " << file_path;
-        CHECK(file.read(data, size))
-            << "Cannot read " << size << " bytes from " << file_path;
-        CHECK_EQ(file.peek(), EOF)
-            << file_path << " size must match input size of " << size << " bytes";
+
+    auto result = new Model();
+
+    //TODO: See if this can be improved with a 0 copy alternative
+    result->model = tflite::FlatBufferModel::BuildFromBuffer(reinterpret_cast<const char*>(model), model_len);
+
+    // TODO: What if the model doesn't contain edgetpu graph nodes?
+    result->edgetpu_context = coral::ContainsEdgeTpuCustomOp(*(result->model))
+                              ? coral::GetEdgeTpuContextOrDie()
+                              : nullptr;
+
+    result->interpreter = coral::MakeEdgeTpuInterpreterOrDie(*(result->model), result->edgetpu_context.get());
+
+    bool tensors_allocated = (result->interpreter->AllocateTensors() == kTfLiteOk);
+
+    if (!(result->model && result->edgetpu_context && result->interpreter && tensors_allocated)) {
+        delete result;
+        result = nullptr;
+    }
+
+    return result;
+}
+
+void unload(Model *model) {
+    if (model) {
+        delete model;
     }
 }
 
-int sampleFunctionToTestLinking(int argc, char* argv[]) {
-  absl::ParseCommandLine(argc, argv);
+// Run inference on
+InferenceResult infer(Model *model, const Tensor *inputs, size_t num_inputs,
+                      const Tensor *outputs, size_t num_outputs) {
+    // Validity checks
+    if (model == nullptr) {
+        return InternalError;
+    }
 
-  // Load the model.
-  const auto model = coral::LoadModelOrDie(absl::GetFlag(FLAGS_model_path));
-  auto edgetpu_context = coral::ContainsEdgeTpuCustomOp(*model)
-                             ? coral::GetEdgeTpuContextOrDie()
-                             : nullptr;
-  auto interpreter = coral::MakeEdgeTpuInterpreterOrDie(*model, edgetpu_context.get());
-  CHECK_EQ(interpreter->AllocateTensors(), kTfLiteOk);
+    // TODO: These validity checks can be moved to a separate function and not be computed every invocation
+    if (model->interpreter->inputs().size() != num_inputs || model->interpreter->outputs().size() != num_outputs) {
+        return IncorrectArgumentSizes;
+    }
 
-  // Read the image to input tensor.
-  auto input = coral::MutableTensorData<char>(*interpreter->input_tensor(0));
-  coral::ReadFileToOrDie(absl::GetFlag(FLAGS_image_path), input.data(), input.size());
-  CHECK_EQ(interpreter->Invoke(), kTfLiteOk);
+    for (size_t i = 0; i < num_inputs; i++) {
+        auto inputTensor = model->interpreter->input_tensor(i);
+        auto tensorComparisonResult  = compare_tensors(inputs[i], *inputTensor);
 
-  // Read the label file.
-  auto labels = coral::ReadLabelFile(absl::GetFlag(FLAGS_labels_path));
+        if (tensorComparisonResult != Ok) {
+            return tensorComparisonResult;
+        }
+    }
 
-  for (auto result : coral::GetClassificationResults(*interpreter, 0.0f, /*top_k=*/3)) {
-    std::cout << "---------------------------" << std::endl;
-    std::cout << labels[result.id] << std::endl;
-    std::cout << "Score: " << result.score << std::endl;
-  }
-  return 0;
+    for (size_t i = 0; i < num_outputs; i++) {
+        auto outputTensor = model->interpreter->output_tensor(i);
+        auto tensorComparisonResult = compare_tensors(outputs[i], *outputTensor);
+
+        if (tensorComparisonResult != Ok) {
+            return tensorComparisonResult;
+        }
+    }
+
+    // Feed inputs to the interpreter
+    for (size_t i = 0; i < num_inputs; i++) {
+        auto tfTensor = coral::MutableTensorData<char>(*model->interpreter->input_tensor(i));
+        const auto& input = inputs[i];
+        std::copy(reinterpret_cast<char*>(input.data), reinterpret_cast<char*>(input.data) + tfTensor.size(),
+                  tfTensor.data());
+    }
+
+    if (model->interpreter->Invoke() == kTfLiteOk) {
+        //Collect outputs
+        for (size_t i = 0; i < num_outputs; i++) {
+            auto tfTensor = coral::MutableTensorData<char>(*model->interpreter->input_tensor(i));
+            std::copy(tfTensor.begin(), tfTensor.end(),
+                      reinterpret_cast<char*>(outputs[i].data));
+        }
+        return Ok;
+    }
+
+    return InternalError;
 }

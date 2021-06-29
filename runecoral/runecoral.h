@@ -1,5 +1,7 @@
 #pragma once
 
+#include <stddef.h>
+
 typedef enum {
   u8,
   i8,
@@ -33,12 +35,14 @@ typedef struct {
 
 typedef struct Model Model;
 
-// Load a model using its "mimetype" to figure out what format the model is
-// in.
-//
+// Load a model using its "mimetype" to figure out what format the model is in
+// Also tries to create an appropriate interpreter to execute the model
 // Only "application/tflite-model" is accepted at this time.
 Model *load(const char *mimetype, const void *model, int model_len);
 
-// Run inference on
-InferenceResult infer(Model *model, const Tensor *inputs, int num_inputs,
-                      const Tensor *outputs, int num_outputs);
+// frees all the resources allocated for a model
+void unload(Model *model);
+
+// Run inference on the model with the inputs provided and collect the outputs
+InferenceResult infer(Model *model, const Tensor *inputs, size_t num_inputs,
+                      const Tensor *outputs, size_t num_outputs);
