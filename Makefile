@@ -39,18 +39,15 @@ endif
 
 
 ifeq ($(CPU),k8)
-RUNE_CORAL_SUFFIX := x86_64-linux-gnu.so
-RUNE_CORAL_DIST_PLATFORM := linux_x86_64
+RUNE_CORAL_DIST_DIR := $(MAKEFILE_DIR)/dist/lib/linux/x86_64
 else ifeq ($(CPU),aarch64)
 BAZEL_BUILD_FLAGS_Linux += --copt=-ffp-contract=off
-RUNE_CORAL_WRAPPER_SUFFIX := aarch64-linux-gnu.so
-RUNE_CORAL_DIST_PLATFORM := linux_aarch64
+RUNE_CORAL_DIST_DIR := $(MAKEFILE_DIR)/dist/lib/linux/aarch64
 else ifeq ($(CPU),armv7a)
 BAZEL_BUILD_FLAGS_Linux += --copt=-ffp-contract=off
-RUNE_CORAL_WRAPPER_SUFFIX := arm-linux-gnueabihf.so
-RUNE_CORAL_DIST_PLATFORM := linux-armv7l
+RUNE_CORAL_DIST_DIR := $(MAKEFILE_DIR)/dist/lib/linux/armv7l
 else ifeq ($(CPU), darwin)
-RUNE_CORAL_WRAPPER_SUFFIX := darwin.so
+RUNE_CORAL_DIST_DIR := $(MAKEFILE_DIR)/dist/lib/darwin
 endif
 
 BAZEL_BUILD_FLAGS := $(COMMON_BAZEL_BUILD_FLAGS) \
@@ -60,12 +57,20 @@ BAZEL_BUILD_FLAGS := $(COMMON_BAZEL_BUILD_FLAGS) \
         clean \
         help
 
-all: runecoral
+all: dist
 
-runecoral:
-	bazel build $(BAZEL_BUILD_FLAGS) \
-	    --stamp \
-	    //runecoral:runecoral
+dist: runecoral_header librunecoral
+
+runecoral_header: runecoral/runecoral.h
+	mkdir -p $(MAKEFILE_DIR)/dist/include
+	install runecoral/runecoral.h $(MAKEFILE_DIR)/dist/include
+
+librunecoral: runecoral/runecoral.cpp
+	bazel build $(BAZEL_BUILD_FLAGS) --stamp //runecoral:runecoral
+
+	mkdir -p $(RUNE_CORAL_DIST_DIR)/
+	install bazel-bin/runecoral/librunecoral.a $(RUNE_CORAL_DIST_DIR)
+	install bazel-bin/runecoral/librunecoral.so $(RUNE_CORAL_DIST_DIR)
 
 clean:
 	rm -rf $(MAKEFILE_DIR)/bazel-* \
