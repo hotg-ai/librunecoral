@@ -6,16 +6,10 @@ extern "C" {
 #include <vector>
 #include <algorithm>
 
-#include "absl/flags/flag.h"
-#include "absl/flags/parse.h"
-#include "coral/classification/adapter.h"
 #include "coral/tflite_utils.h"
 #include "tensorflow/lite/c/common.h"
 #include "tensorflow/lite/interpreter.h"
-#include "absl/strings/ascii.h"
-#include "absl/strings/numbers.h"
-#include "absl/strings/str_split.h"
-#include "glog/logging.h"
+
 
 static const std::string TFLITE_MIME_TYPE = "application/tflite-model";
 
