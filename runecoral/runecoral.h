@@ -2,15 +2,22 @@
 
 #include <stddef.h>
 
+// These types match the TfLiteType from tensorflow.
+// When modifying these types, only add to this enum
 typedef enum {
-  u8,
-  i8,
-  u16,
-  i16,
-  u32,
-  i32,
-  f32,
-  f64,
+  ElementType__NoType = 0,
+  ElementType__Float32 = 1,
+  ElementType__Int32 = 2,
+  ElementType__UInt8 = 3,
+  ElementType__Int64 = 4,
+  ElementType__String = 5,
+  ElementType__Bool = 6,
+  ElementType__Int16 = 7,
+  ElementType__Complex64 = 8,
+  ElementType__Int8 = 9,
+  ElementType__Float16 = 10,
+  ElementType__Float64 = 11,
+  ElementType__Complex128 = 12,
 } ElementType;
 
 typedef enum {

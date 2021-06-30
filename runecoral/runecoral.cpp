@@ -14,22 +14,7 @@ extern "C" {
 static const std::string TFLITE_MIME_TYPE = "application/tflite-model";
 
 InferenceResult compare_tensors(const Tensor &runeTensor, const TfLiteTensor &tfLiteTensor) {
-    // FIXME: Missing tflite types in ElementType: Fix me.
-    //   kTfLiteNoType = 0,
-    //   kTfLiteInt64 = 4,
-    //   kTfLiteString = 5,
-    //   kTfLiteBool = 6,
-    //   kTfLiteComplex64 = 8,
-    //   kTfLiteComplex128 = 12,
-    // Once we sync up the types, the comparison could simply be a int cast
-    // Missing ElementType in TFLiteType
-    // u16, u32
-    ElementType e = runeTensor.type;
-    TfLiteType t = tfLiteTensor.type;
-    if (!((e == u8 && t == kTfLiteUInt8) || (e == i8 && t == kTfLiteInt8)
-         || (e == i16 && t == kTfLiteInt16)
-         || (e == i32 && t == kTfLiteInt32)
-         || (e == f32 && t == kTfLiteFloat32) || (e == f64 && t == kTfLiteFloat64))) {
+    if (static_cast<int>(runeTensor.type) != static_cast<int>(tfLiteTensor.type)) {
         return IncorrectArgumentTypes;
     }
 
