@@ -72,7 +72,7 @@ void unload(Model *model) {
 
 // Run inference on
 InferenceResult infer(Model *model, const Tensor *inputs, size_t num_inputs,
-                      const Tensor *outputs, size_t num_outputs) {
+                      Tensor *outputs, size_t num_outputs) {
     // Validity checks
     if (model == nullptr) {
         return InternalError;
@@ -112,7 +112,7 @@ InferenceResult infer(Model *model, const Tensor *inputs, size_t num_inputs,
     if (model->interpreter->Invoke() == kTfLiteOk) {
         //Collect outputs
         for (size_t i = 0; i < num_outputs; i++) {
-            auto tfTensor = coral::MutableTensorData<char>(*model->interpreter->input_tensor(i));
+            auto tfTensor = coral::TensorData<char>(*model->interpreter->input_tensor(i));
             std::copy(tfTensor.begin(), tfTensor.end(),
                       reinterpret_cast<char*>(outputs[i].data));
         }

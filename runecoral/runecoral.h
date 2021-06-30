@@ -52,4 +52,4 @@ void unload(Model *model);
 
 // Run inference on the model with the inputs provided and collect the outputs
 InferenceResult infer(Model *model, const Tensor *inputs, size_t num_inputs,
-                      const Tensor *outputs, size_t num_outputs);
+                      Tensor *outputs, size_t num_outputs);
