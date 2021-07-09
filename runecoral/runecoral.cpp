@@ -2,7 +2,7 @@ extern "C" {
     #include "runecoral.h"
 }
 
-#include <string>
+#include <cstring>
 #include <vector>
 #include <algorithm>
 
@@ -10,114 +10,130 @@ extern "C" {
 #include "tensorflow/lite/c/common.h"
 #include "tensorflow/lite/interpreter.h"
 
-
-static const std::string TFLITE_MIME_TYPE = "application/tflite-model";
-
-InferenceResult compare_tensors(const Tensor &runeTensor, const TfLiteTensor &tfLiteTensor) {
+RuneCoralLoadResult compare_tensors(const RuneCoralTensor &runeTensor, const TfLiteTensor &tfLiteTensor) {
     if (static_cast<int>(runeTensor.type) != static_cast<int>(tfLiteTensor.type)) {
-        return IncorrectArgumentTypes;
+        return RuneCoralLoadResult__IncorrectArgumentTypes;
     }
 
     if (runeTensor.rank != tfLiteTensor.dims->size) {
-        return IncorrectArgumentSizes;
+        return RuneCoralLoadResult__IncorrectArgumentSizes;
     }
 
     for (int i = 0; i < runeTensor.rank; i ++) {
         if (runeTensor.shape[i] != tfLiteTensor.dims->data[i]) {
-            return IncorrectArgumentSizes;
+            return RuneCoralLoadResult__IncorrectArgumentSizes;
         }
     }
 
-    return Ok;
+    return RuneCoralLoadResult__Ok;
 }
 
-struct Model {
+struct RuneCoralContext {
     std::unique_ptr<tflite::FlatBufferModel> model;
     std::shared_ptr<edgetpu::EdgeTpuContext> edgetpu_context;
     std::unique_ptr<tflite::Interpreter> interpreter;
 };
 
-Model *load(const char *mimetype, const void *model, int model_len) {
-    if (mimetype != TFLITE_MIME_TYPE) {
-        return nullptr;
+RuneCoralLoadResult create_inference_context(const char *mimetype, const void *model, int model_len,
+                                             const RuneCoralTensor *inputs, size_t num_inputs,
+                                             const RuneCoralTensor *outputs, size_t num_outputs,
+                                             RuneCoralContext **inferenceContext) {
+    if (strcmp(mimetype, RUNE_CORAL_MIME_TYPE__TFLITE) != 0) {
+        return RuneCoralLoadResult__IncorrectMimeType;
     }
 
-    auto result = new Model();
+    if (inferenceContext == nullptr) {
+        return RuneCoralLoadResult__InternalError;
+    }
+
+    RuneCoralLoadResult result = RuneCoralLoadResult__Ok;
+
+    RuneCoralContext *context = new RuneCoralContext();
 
     //TODO: See if this can be improved with a 0 copy alternative
-    result->model = tflite::FlatBufferModel::BuildFromBuffer(reinterpret_cast<const char*>(model), model_len);
+    context->model = tflite::FlatBufferModel::BuildFromBuffer(reinterpret_cast<const char*>(model), model_len);
 
-    // TODO: What if the model doesn't contain edgetpu graph nodes?
-    result->edgetpu_context = coral::ContainsEdgeTpuCustomOp(*(result->model))
+    // TODO: What if the context doesn't contain edgetpu graph nodes?
+    context->edgetpu_context = coral::ContainsEdgeTpuCustomOp(*(context->model))
                               ? coral::GetEdgeTpuContextOrDie()
                               : nullptr;
 
-    result->interpreter = coral::MakeEdgeTpuInterpreterOrDie(*(result->model), result->edgetpu_context.get());
+    context->interpreter = coral::MakeEdgeTpuInterpreterOrDie(*(context->model), context->edgetpu_context.get());
 
-    bool tensors_allocated = (result->interpreter->AllocateTensors() == kTfLiteOk);
+    if (context->interpreter->AllocateTensors() != kTfLiteOk) {
+        result =   RuneCoralLoadResult__InternalError;
+    }
 
-    if (!(result->model && result->edgetpu_context && result->interpreter && tensors_allocated)) {
-        delete result;
-        result = nullptr;
+    if(context->interpreter->inputs().size() != num_inputs || context->interpreter->outputs().size() != num_outputs) {
+        result = RuneCoralLoadResult__IncorrectArgumentSizes;
+    }
+
+    if (result == RuneCoralLoadResult__Ok) {
+        for (size_t i = 0; i < num_inputs; i++) {
+            auto inputTensor = context->interpreter->input_tensor(i);
+            result  = compare_tensors(inputs[i], *inputTensor);
+
+            if (result != RuneCoralLoadResult__Ok) {
+                break;
+            }
+        }
+    }
+
+    if (result == RuneCoralLoadResult__Ok) {
+        for (size_t i = 0; i < num_outputs; i++) {
+            auto outputTensor = context->interpreter->output_tensor(i);
+            result = compare_tensors(outputs[i], *outputTensor);
+
+            if (result != RuneCoralLoadResult__Ok) {
+                break;
+            }
+        }
+    }
+
+    if (!(context->model && context->edgetpu_context && context->interpreter && result == RuneCoralLoadResult__Ok)) {
+        delete context;
+        context = nullptr;
+        *inferenceContext = nullptr;
+    } else {
+        *inferenceContext = context;
     }
 
     return result;
 }
 
-void unload(Model *model) {
-    if (model) {
-        delete model;
+void destroy_inference_context(RuneCoralContext **context) {
+    if (context && *context) {
+        delete *context;
+        *context = nullptr;
     }
 }
 
 // Run inference on
-InferenceResult infer(Model *model, const Tensor *inputs, size_t num_inputs,
-                      Tensor *outputs, size_t num_outputs) {
+RuneCoralInferenceResult infer(RuneCoralContext *context, const RuneCoralTensor *inputs, size_t num_inputs,
+                               RuneCoralTensor *outputs, size_t num_outputs) {
     // Validity checks
-    if (model == nullptr) {
-        return InternalError;
-    }
-
-    // TODO: These validity checks can be moved to a separate function and not be computed every invocation
-    if (model->interpreter->inputs().size() != num_inputs || model->interpreter->outputs().size() != num_outputs) {
-        return IncorrectArgumentSizes;
-    }
-
-    for (size_t i = 0; i < num_inputs; i++) {
-        auto inputTensor = model->interpreter->input_tensor(i);
-        auto tensorComparisonResult  = compare_tensors(inputs[i], *inputTensor);
-
-        if (tensorComparisonResult != Ok) {
-            return tensorComparisonResult;
-        }
-    }
-
-    for (size_t i = 0; i < num_outputs; i++) {
-        auto outputTensor = model->interpreter->output_tensor(i);
-        auto tensorComparisonResult = compare_tensors(outputs[i], *outputTensor);
-
-        if (tensorComparisonResult != Ok) {
-            return tensorComparisonResult;
-        }
+    if (context == nullptr) {
+        return RuneCoralInferenceResult__Error;
     }
 
     // Feed inputs to the interpreter
     for (size_t i = 0; i < num_inputs; i++) {
-        auto tfTensor = coral::MutableTensorData<char>(*model->interpreter->input_tensor(i));
+        auto tfTensor = coral::MutableTensorData<char>(*context->interpreter->input_tensor(i));
         const auto& input = inputs[i];
         std::copy(reinterpret_cast<char*>(input.data), reinterpret_cast<char*>(input.data) + tfTensor.size(),
                   tfTensor.data());
     }
 
-    if (model->interpreter->Invoke() == kTfLiteOk) {
+    auto inferenceResult = context->interpreter->Invoke();
+    if (inferenceResult == kTfLiteOk) {
         //Collect outputs
         for (size_t i = 0; i < num_outputs; i++) {
-            auto tfTensor = coral::TensorData<char>(*model->interpreter->input_tensor(i));
+            auto tfTensor = coral::TensorData<char>(*context->interpreter->input_tensor(i));
             std::copy(tfTensor.begin(), tfTensor.end(),
                       reinterpret_cast<char*>(outputs[i].data));
         }
-        return Ok;
+        return RuneCoralInferenceResult__Ok;
     }
 
-    return InternalError;
+    return static_cast<RuneCoralInferenceResult>(inferenceResult);
 }
