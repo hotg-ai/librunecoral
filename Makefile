@@ -67,10 +67,13 @@ runecoral_header: runecoral/runecoral.h
 
 librunecoral: runecoral/runecoral.cpp
 	bazel build $(BAZEL_BUILD_FLAGS) //runecoral:librunecoral.so
-
 	mkdir -p $(RUNE_CORAL_DIST_DIR)/
 	# install bazel-bin/runecoral/librunecoral.a $(RUNE_CORAL_DIST_DIR)
 	install bazel-bin/runecoral/librunecoral.so $(RUNE_CORAL_DIST_DIR)
+
+
+docker-image:
+	docker build $(DOCKER_IMAGE_OPTIONS) -t runecoral-cross-debian-stretch $(MAKEFILE_DIR)/docker
 
 clean:
 	rm -rf $(MAKEFILE_DIR)/bazel-* \
