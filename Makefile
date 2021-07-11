@@ -25,10 +25,10 @@ COMMON_BAZEL_BUILD_FLAGS_Linux := --crosstool_top=@crosstool//:toolchains \
                                   --compiler=gcc
 COMMON_BAZEL_BUILD_FLAGS_Darwin :=
 COMMON_BAZEL_BUILD_FLAGS := --compilation_mode=$(COMPILATION_MODE) \
-                            --copt=-DNPY_NO_DEPRECATED_API=NPY_1_7_API_VERSION \
                             --verbose_failures \
                             --sandbox_debug \
                             --subcommands \
+                            --define darwinn_portable=1 \
                             --cpu=$(CPU) \
                             --experimental_repo_remote_exec \
                             $(COMMON_BAZEL_BUILD_FLAGS_$(OS))
@@ -66,10 +66,10 @@ runecoral_header: runecoral/runecoral.h
 	install runecoral/runecoral.h $(MAKEFILE_DIR)/dist/include
 
 librunecoral: runecoral/runecoral.cpp
-	bazel build $(BAZEL_BUILD_FLAGS) --stamp //runecoral:runecoral
+	bazel build $(BAZEL_BUILD_FLAGS) //runecoral:librunecoral.so
 
 	mkdir -p $(RUNE_CORAL_DIST_DIR)/
-	install bazel-bin/runecoral/librunecoral.a $(RUNE_CORAL_DIST_DIR)
+	# install bazel-bin/runecoral/librunecoral.a $(RUNE_CORAL_DIST_DIR)
 	install bazel-bin/runecoral/librunecoral.so $(RUNE_CORAL_DIST_DIR)
 
 clean:
@@ -82,10 +82,3 @@ help:
 	@echo "make runecoral       - Build pycoral native code"
 	@echo "make clean        - Remove generated files"
 	@echo "make help         - Print help message"
-
-TEST_ENV := $(shell test -L $(MAKEFILE_DIR)/test_data && echo 1)
-DOCKER_WORKSPACE := $(MAKEFILE_DIR)/$(if $(TEST_ENV),..,)
-DOCKER_WORKSPACE_CD := $(if $(TEST_ENV),pycoral,)
-DOCKER_CPUS := k8 armv7a aarch64
-DOCKER_TAG_BASE := coral-edgetpu
-include $(MAKEFILE_DIR)/third_party/libcoral/docker/docker.mk
