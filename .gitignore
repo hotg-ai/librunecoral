@@ -1,3 +1,6 @@
 /bazel-*
 /out
+dist/*
+example/build/*
+*.user
 .DS_Store

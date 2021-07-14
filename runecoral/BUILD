@@ -2,26 +2,20 @@ package(
     default_visibility = ["//visibility:public"],
 )
 
-cc_library(
-    name = "runecoral",
+cc_binary(
+    name = "librunecoral.so",
     srcs = [
         "runecoral.cpp",
+        "runecoral.h",
     ],
-    hdrs = ["runecoral.h"],
-    data = select({
-        "//conditions:default": [],
-    }),
+    # hdrs = ["runecoral.h"],
     linkopts = select({
-        "//conditions:default": [],
+        "//conditions:default": ["-shared"],
     }),
     deps = [
-        "@com_google_absl//absl/flags:flag",
-        "@com_google_absl//absl/flags:parse",
-        "@libcoral//coral:tflite_utils",
-        "@libcoral//coral/classification:adapter",
-        "@libedgetpu//tflite/public:edgetpu",
-        "@org_tensorflow//tensorflow/lite:stateful_error_reporter",
-        "@org_tensorflow//tensorflow/lite/c:common",
-        "@glog"
+      "@libedgetpu//tflite/public:edgetpu_c",
+      "@libedgetpu//tflite/public:oss_edgetpu_direct_pci",
+      "@org_tensorflow//tensorflow/lite:framework",
+      "@org_tensorflow//tensorflow/lite/kernels:builtin_ops",  # BuiltinOpResolver
     ],
 )
