@@ -58,7 +58,7 @@ struct RuneCoralContext {
     }
 };
 
-RuneCoralLoadResult create_inference_context(const char *mimetype, const void *model, int model_len,
+RuneCoralLoadResult create_inference_context(const char *mimetype, const void *model, size_t model_len,
                                              const RuneCoralTensor *inputs, size_t num_inputs,
                                              const RuneCoralTensor *outputs, size_t num_outputs,
                                              RuneCoralContext **inferenceContext) {

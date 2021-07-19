@@ -50,7 +50,7 @@ typedef enum {
 // Only "application/tflite-model" is accepted at this time.
 // And then create an interpreter for the model to be interpreted
 // Also verifies if the input and output tensors match that of model
-RuneCoralLoadResult create_inference_context(const char *mimetype, const void *model, int model_len,
+RuneCoralLoadResult create_inference_context(const char *mimetype, const void *model, size_t model_len,
                                              const RuneCoralTensor *inputs, size_t num_inputs,
                                              const RuneCoralTensor *outputs, size_t num_outputs,
                                              RuneCoralContext **inferenceContext);
