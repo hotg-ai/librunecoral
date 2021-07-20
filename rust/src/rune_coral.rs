@@ -3,13 +3,13 @@ use std::{
     ffi::{CString, OsStr},
     mem::MaybeUninit,
     ptr::{self, NonNull},
-    rc::Rc,
+    sync::Arc,
 };
 
 /// A safe wrapper around `librunecoral` which has been dynamically loaded at
 /// runtime.
 pub struct RuneCoral {
-    inner: Rc<ffi::RuneCoral>,
+    inner: Arc<ffi::RuneCoral>,
 }
 
 impl RuneCoral {
@@ -17,7 +17,7 @@ impl RuneCoral {
         unsafe {
             let inner = ffi::RuneCoral::new(path)?;
             Ok(RuneCoral {
-                inner: Rc::new(inner),
+                inner: Arc::new(inner),
             })
         }
     }
@@ -56,7 +56,7 @@ impl RuneCoral {
 
             Ok(InferenceContext::new(
                 NonNull::new(inference_context).expect("Should be initialized"),
-                Rc::clone(&self.inner),
+                Arc::clone(&self.inner),
             ))
         }
     }
@@ -103,4 +103,14 @@ fn dummy_tensors(inputs: &[TensorDescriptor<'_>]) -> Vec<ffi::RuneCoralTensor> {
     }
 
     tensors
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn library_wrapper_is_send_and_sync() {
+        static_assertions::assert_impl_all!(RuneCoral: Send, Sync);
+    }
 }

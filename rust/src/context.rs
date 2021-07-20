@@ -2,13 +2,13 @@ use crate::{ffi, Tensor, TensorMut};
 use std::{
     fmt::{self, Debug, Formatter},
     ptr::NonNull,
-    rc::Rc,
+    sync::Arc,
 };
 
 /// A backend which can run inference on a model.
 pub struct InferenceContext {
     ctx: NonNull<ffi::RuneCoralContext>,
-    lib: Rc<ffi::RuneCoral>,
+    lib: Arc<ffi::RuneCoral>,
 }
 
 impl InferenceContext {
@@ -18,7 +18,10 @@ impl InferenceContext {
     ///
     /// This takes ownership of the `ctx` pointer and will deallocate it on
     /// drop.
-    pub(crate) unsafe fn new(ctx: NonNull<ffi::RuneCoralContext>, lib: Rc<ffi::RuneCoral>) -> Self {
+    pub(crate) unsafe fn new(
+        ctx: NonNull<ffi::RuneCoralContext>,
+        lib: Arc<ffi::RuneCoral>,
+    ) -> Self {
         InferenceContext { ctx, lib }
     }
 
@@ -62,6 +65,13 @@ impl Drop for InferenceContext {
     }
 }
 
+// Safety: There shouldn't be any thread-specific state, so it's okay to move
+// the inference context to another thread.
+//
+// The inference context is very much **not** thread-safe though, so we can't
+// implement Sync.
+unsafe impl Send for InferenceContext {}
+
 fn check_inference_error(return_code: ffi::RuneCoralInferenceResult) -> Result<(), InferError> {
     match return_code {
         ffi::RuneCoralInferenceResult__Ok => Ok(()),
@@ -90,4 +100,19 @@ pub enum InferError {
     Other {
         return_code: ffi::RuneCoralInferenceResult,
     },
+}
+
+#[cfg(test)]
+mod tests {
+    use std::sync::Mutex;
+
+    use super::*;
+
+    #[test]
+    fn inference_context_is_only_send() {
+        static_assertions::assert_impl_all!(InferenceContext: Send);
+        static_assertions::assert_not_impl_any!(InferenceContext: Sync);
+        // but we can wrap it in a mutex!
+        static_assertions::assert_impl_all!(Mutex<InferenceContext>: Send, Sync);
+    }
 }
