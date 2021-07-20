@@ -12,7 +12,6 @@ extern "C" {
 #include "tensorflow/lite/model_builder.h"
 #include "tflite/public/edgetpu_c.h"
 
-#define RUNECORAL_ENABLE_LOGGING
 #ifdef RUNECORAL_ENABLE_LOGGING
 #define LOG_E(x)  {  std::cerr << "[runecoral] " << x << std::endl; }
 #define LOG_D(x)  {  std::cerr << "[runecoral] " << x << std::endl; }
