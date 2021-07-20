@@ -17,7 +17,7 @@ jobs:
 
       - name: Checkout submodules
         run: git submodule update --init --recursive --force
-   
+
       - name: Install build dependencies
         run: |
             sudo sed -i "s/deb\ /deb \[arch=amd64\]\ /g" /etc/apt/sources.list
@@ -79,8 +79,8 @@ jobs:
       - name: Check
         uses: actions-rs/cargo@v1
         with:
-          command: check
+          command: check --manifest-path rust/Cargo.toml
       - name: Test
         uses: actions-rs/cargo@v1
         with:
-          command: test
+          command: test --manifest-path rust/Cargo.toml
