@@ -37,7 +37,7 @@ jobs:
       - name: Cache build dependencies
         uses: actions/cache@v2
         with:
-          key: ${{ runner.os }}-build-cache-librunecoral
+          key: ${{ runner.os }}-${{ github.workflow }}-${{ github.job }}
           path: ~/.cache/bazel
 
       - name: Build packages
@@ -64,6 +64,7 @@ jobs:
             ~/.cargo/registry
             ~/.cargo/git
             target
+            rust/Cargo.lock
             ~/.cache
           key: ${{ runner.os }}-${{ github.workflow }}-${{ github.job }}-${{ hashFiles('**/Cargo.lock') }}
       # libclang is needed by bindgen
