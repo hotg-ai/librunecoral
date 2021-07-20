@@ -4,7 +4,7 @@ use std::{
     ffi::CStr,
     io,
     path::{Path, PathBuf},
-    process::{Command, Stdio},
+    process::{Command, Output, Stdio},
     time::SystemTime,
 };
 
@@ -84,6 +84,7 @@ fn librunecoral() -> PathBuf {
         .arg("--volume=/etc/group:/etc/group:ro")
         .arg("--volume=/etc/passwd:/etc/passwd:ro")
         .arg("--volume=/etc/localtime:/etc/localtime:ro")
+        .arg("--init")
         .arg(format!("--user={}:{}", user_id, group_id))
         .arg(format!("--env=HOME={}", home))
         .arg(format!("--env=USER={}", user))
@@ -92,16 +93,30 @@ fn librunecoral() -> PathBuf {
         .arg(RUNECORAL_BUILD_IMAGE)
         .arg("bash")
         .arg("-c")
-        .arg("make && bazel shutdown");
+        .arg("make");
 
     cmd.stdin(Stdio::null())
         .stdout(Stdio::piped())
         .stderr(Stdio::piped());
 
-    let output = cmd.output().unwrap();
+    let Output {
+        stdout,
+        stderr,
+        status,
+    } = cmd.output().unwrap();
 
-    if !output.status.success() {
-        panic!("{:?} failed with {:?}", cmd, output);
+    if !status.success() {
+        let stdout = String::from_utf8_lossy(&stdout);
+        if !stdout.trim().is_empty() {
+            println!("Stdout:");
+            println!("{}", stdout);
+        }
+        let stderr = String::from_utf8_lossy(&stderr);
+        if !stderr.trim().is_empty() {
+            println!("Stderr:");
+            println!("{}", stderr);
+        }
+        panic!("{:?} failed", cmd);
     }
 
     bin
