@@ -8,6 +8,7 @@ use std::{
     time::SystemTime,
 };
 
+const RUNECORAL_BUILD_IMAGE: &str = "tinyverseml/runecoral-cross-debian-stretch";
 static LIBRUNECORAL: Lazy<PathBuf> = Lazy::new(librunecoral);
 
 fn mimetype() -> &'static str {
@@ -88,7 +89,7 @@ fn librunecoral() -> PathBuf {
         .arg(format!("--env=USER={}", user))
         .arg(format!("--env=CPU={}", cpu))
         .arg(format!("--workdir={}", project_root.display()))
-        .arg("runecoral-cross-debian-stretch")
+        .arg(RUNECORAL_BUILD_IMAGE)
         .arg("bash")
         .arg("-c")
         .arg("make && bazel shutdown");

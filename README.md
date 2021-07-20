@@ -34,7 +34,8 @@ $ docker run --rm -it -v $PWD:$PWD \
                -v /etc/localtime:/etc/localtime:ro \
                -u $(id -u ${USER}):$(id -g ${USER}) \
                -e HOME=$HOME \
-               -e USER=$USER runecoral-cross-debian-stretch
+               -e USER=$USER \
+               tinyverseml/runecoral-cross-debian-stretch
 user@39b50cb9fe24:/src/librunecoral$ CPU=aarch64 make
 user@39b50cb9fe24:/src/librunecoral$ ls dist/include
 runecoral.h
@@ -55,7 +56,7 @@ $ docker run --rm -it -v $PWD:$PWD \
                -e USER=$USER \
                -e CPU=k8 \
                --workdir $PWD \
-               runecoral-cross-debian-stretch \
+               tinyverseml/runecoral-cross-debian-stretch \
                make
 ```
 
