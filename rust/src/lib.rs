@@ -1,5 +1,5 @@
 mod context;
-mod ffi;
+pub mod ffi;
 mod rune_coral;
 mod tensors;
 
