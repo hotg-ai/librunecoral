@@ -83,6 +83,13 @@ fn project_root() -> PathBuf {
 }
 
 fn librunecoral() -> PathBuf {
+    // Let the user override which `librunecoral.so` we load.
+    if let Ok(path) = std::env::var("LIBRUNECORAL_SO") {
+        let path = PathBuf::from(path);
+        assert!(path.exists(), "Nothing found at \"{}\"", path.display());
+        return path;
+    }
+
     let project_root = project_root();
     let bin = project_root.join("bazel-bin/runecoral/librunecoral.so");
 
