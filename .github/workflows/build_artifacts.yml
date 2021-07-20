@@ -45,6 +45,7 @@ jobs:
             make
             CPU=armv7a make
             CPU=aarch64 make
+            bazel shutdown
 
       - uses: actions/upload-artifact@v2
         with:
