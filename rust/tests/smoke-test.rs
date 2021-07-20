@@ -1,5 +1,5 @@
 use once_cell::sync::Lazy;
-use runecoral::{Error, LoadError, RuneCoral};
+use runecoral::{ElementType, Error, LoadError, RuneCoral, Tensor, TensorDescriptor, TensorMut};
 use std::{
     ffi::CStr,
     io,
@@ -44,6 +44,35 @@ fn create_inference_context_with_incorrect_number_of_tensors() {
         .unwrap_err();
 
     assert_eq!(err, Error::Load(LoadError::IncorrectArgumentSizes));
+}
+
+#[test]
+fn run_inference_using_the_sine_model() {
+    let rune_coral = RuneCoral::load(&*LIBRUNECORAL).unwrap();
+    let model = include_bytes!("sinemodel.tflite");
+    let descriptors = [TensorDescriptor {
+        element_type: ElementType::Float32,
+        dimensions: &[1, 1],
+    }];
+
+    let mut ctx = rune_coral
+        .create_inference_context(mimetype(), model, &descriptors, &descriptors)
+        .unwrap();
+
+    let input = [0.5_f32];
+    let mut output = [0_f32];
+
+    ctx.infer(
+        &[Tensor::from_slice(&input, &[1])],
+        &mut [TensorMut::from_slice(&mut output, &[1])],
+    )
+    .unwrap();
+
+    assert_eq!(round(output[0]), round(0.4540305));
+}
+
+fn round(n: f32) -> f32 {
+    (n * 10000.0).round() / 10000.0
 }
 
 fn project_root() -> PathBuf {

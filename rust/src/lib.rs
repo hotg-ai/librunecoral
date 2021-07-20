@@ -6,7 +6,7 @@ mod tensors;
 pub use crate::{
     context::InferenceContext,
     rune_coral::{LoadError, RuneCoral},
-    tensors::{ElementType, TensorDescriptor},
+    tensors::{ElementType, Tensor, TensorDescriptor, TensorMut},
 };
 
 use std::ffi::NulError;
