@@ -5,14 +5,16 @@ mod tensors;
 
 pub use crate::{
     context::InferenceContext,
-    rune_coral::RuneCoral,
+    rune_coral::{LoadError, RuneCoral},
     tensors::{ElementType, TensorDescriptor},
 };
 
 use std::ffi::NulError;
 
-#[derive(Debug, thiserror::Error)]
+#[derive(Debug, Clone, PartialEq, thiserror::Error)]
 pub enum Error {
     #[error("Invalid string")]
     InvalidString(#[from] NulError),
+    #[error("Unable to load the model")]
+    Load(#[from] LoadError),
 }

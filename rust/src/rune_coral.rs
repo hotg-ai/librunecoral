@@ -26,8 +26,8 @@ impl RuneCoral {
         &self,
         mimetype: &str,
         model: &[u8],
-        inputs: &[TensorDescriptor],
-        outputs: &[TensorDescriptor],
+        inputs: &[TensorDescriptor<'_>],
+        outputs: &[TensorDescriptor<'_>],
     ) -> Result<InferenceContext, Error> {
         let mimetype = CString::new(mimetype)?;
         let mut inference_context = MaybeUninit::uninit();
@@ -35,8 +35,12 @@ impl RuneCoral {
         let inputs = dummy_tensors(inputs);
         let outputs = dummy_tensors(outputs);
 
-        let inference_context = unsafe {
-            self.inner.create_inference_context(
+        // Safety: We've ensured our inputs are sane by construction (i.e. Rust
+        // doesn't let you create a null slice and all enums are exhaustive)
+        // and our `inputs` and `outputs` tensor vector can't outlive the
+        // `inputs` and `outputs` function arguments.
+        unsafe {
+            let ret = self.inner.create_inference_context(
                 mimetype.as_ptr(),
                 model.as_ptr().cast(),
                 model.len() as ffi::size_t,
@@ -46,15 +50,43 @@ impl RuneCoral {
                 outputs.len() as ffi::size_t,
                 inference_context.as_mut_ptr(),
             );
+            check_load_result(ret)?;
 
-            inference_context.assume_init()
-        };
+            let inference_context = inference_context.assume_init();
 
-        Ok(InferenceContext::new(
-            NonNull::new(inference_context).expect("Should be initialized"),
-            Rc::clone(&self.inner),
-        ))
+            Ok(InferenceContext::new(
+                NonNull::new(inference_context).expect("Should be initialized"),
+                Rc::clone(&self.inner),
+            ))
+        }
     }
+}
+
+fn check_load_result(return_code: ffi::RuneCoralLoadResult) -> Result<(), LoadError> {
+    match return_code {
+        ffi::RuneCoralLoadResult__Ok => Ok(()),
+        ffi::RuneCoralLoadResult__IncorrectMimeType => Err(LoadError::IncorrectMimeType),
+        ffi::RuneCoralLoadResult__IncorrectArgumentSizes => Err(LoadError::IncorrectArgumentSizes),
+        ffi::RuneCoralLoadResult__IncorrectArgumentTypes => Err(LoadError::IncorrectArgumentTypes),
+        ffi::RuneCoralLoadResult__InternalError => Err(LoadError::InternalError),
+        _ => Err(LoadError::Other { return_code }),
+    }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, thiserror::Error)]
+pub enum LoadError {
+    #[error("Incorrect mimetype")]
+    IncorrectMimeType,
+    #[error("Incorrect argument types")]
+    IncorrectArgumentTypes,
+    #[error("Incorrect argument sizes")]
+    IncorrectArgumentSizes,
+    #[error("Internal error")]
+    InternalError,
+    #[error("Unknown error {}", return_code)]
+    Other {
+        return_code: ffi::RuneCoralLoadResult,
+    },
 }
 
 fn dummy_tensors(inputs: &[TensorDescriptor<'_>]) -> Vec<ffi::RuneCoralTensor> {
