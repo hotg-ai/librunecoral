@@ -1,6 +1,6 @@
 # librunecoral
 
-A thinly veiled wrapper libcoral from google
+A thinly veiled wrapper around tflite and libedgetpu from Google
 
 
 ## Building
