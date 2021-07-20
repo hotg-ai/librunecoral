@@ -10,6 +10,13 @@ use std::{
 
 static LIBRUNECORAL: Lazy<PathBuf> = Lazy::new(librunecoral);
 
+fn mimetype() -> &'static str {
+    CStr::from_bytes_with_nul(runecoral::ffi::RUNE_CORAL_MIME_TYPE__TFLITE)
+        .unwrap()
+        .to_str()
+        .unwrap()
+}
+
 #[test]
 fn load_librunecoral_from_disk() {
     let _ = RuneCoral::load(&*LIBRUNECORAL).unwrap();
@@ -38,13 +45,6 @@ fn create_inference_context_with_incorrect_number_of_tensors() {
     assert_eq!(err, Error::Load(LoadError::IncorrectArgumentSizes));
 }
 
-fn mimetype() -> &'static str {
-    CStr::from_bytes_with_nul(runecoral::ffi::RUNE_CORAL_MIME_TYPE__TFLITE)
-        .unwrap()
-        .to_str()
-        .unwrap()
-}
-
 fn project_root() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR"))
         .parent()
@@ -63,7 +63,7 @@ fn librunecoral() -> PathBuf {
         return bin;
     }
 
-    // Run the same build command from
+    // Run the same build command from the README.
 
     let home = std::env::var("HOME").unwrap();
     let user = std::env::var("USER").unwrap();
@@ -120,6 +120,7 @@ fn last_touched(path: impl AsRef<Path>) -> Result<SystemTime, io::Error> {
     Ok(modified)
 }
 
+/// Use the `id` command to get certain information about the current user.
 fn id(flag: &str) -> u64 {
     let output = Command::new("id")
         .arg(flag)
