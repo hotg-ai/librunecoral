@@ -56,3 +56,5 @@ ARG BAZEL_VERSION=4.0.0
 RUN wget -O /bazel https://github.com/bazelbuild/bazel/releases/download/${BAZEL_VERSION}/bazel-${BAZEL_VERSION}-installer-linux-x86_64.sh && \
     bash /bazel && \
     rm -f /bazel
+
+RUN apt-get install -y python

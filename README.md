@@ -42,6 +42,23 @@ user@39b50cb9fe24:/src/librunecoral$ ls dist/lib/linux/aarch64
 librunecoral.so
 ```
 
+Or use this one-liner:
+
+```
+$ docker run --rm -it -v $PWD:$PWD \
+               -v $HOME:$HOME \
+               -v /etc/group:/etc/group:ro \
+               -v /etc/passwd:/etc/passwd:ro \
+               -v /etc/localtime:/etc/localtime:ro \
+               -u $(id -u ${USER}):$(id -g ${USER}) \
+               -e HOME=$HOME \
+               -e USER=$USER \
+               -e CPU=k8 \
+               --workdir $PWD \
+               runecoral-cross-debian-stretch \
+               make
+```
+
 # Thanks to:
 * Webcoral
 * libedgetpu
