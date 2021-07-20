@@ -56,9 +56,9 @@ fn librunecoral() -> PathBuf {
     let project_root = project_root();
     let bin = project_root.join("bazel-bin/runecoral/librunecoral.so");
 
-    let previous_compilation_time = bin.metadata().unwrap().modified().unwrap();
-
-    if previous_compilation_time >= last_touched(project_root.join("runecoral")).unwrap() {
+    if bin.exists()
+        && last_touched(&bin).unwrap() >= last_touched(project_root.join("runecoral")).unwrap()
+    {
         // no need to recompile.
         return bin;
     }
