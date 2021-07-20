@@ -12,7 +12,6 @@ extern "C" {
 #include "tensorflow/lite/model_builder.h"
 #include "tflite/public/edgetpu_c.h"
 
-#define RUNECORAL_ENABLE_LOGGING
 #ifdef RUNECORAL_ENABLE_LOGGING
 #define LOG_E(x)  {  std::cerr << "[runecoral] " << x << std::endl; }
 #define LOG_D(x)  {  std::cerr << "[runecoral] " << x << std::endl; }
@@ -58,7 +57,7 @@ struct RuneCoralContext {
     }
 };
 
-RuneCoralLoadResult create_inference_context(const char *mimetype, const void *model, int model_len,
+RuneCoralLoadResult create_inference_context(const char *mimetype, const void *model, size_t model_len,
                                              const RuneCoralTensor *inputs, size_t num_inputs,
                                              const RuneCoralTensor *outputs, size_t num_outputs,
                                              RuneCoralContext **inferenceContext) {
@@ -147,11 +146,8 @@ RuneCoralLoadResult create_inference_context(const char *mimetype, const void *m
     return result;
 }
 
-void destroy_inference_context(RuneCoralContext **context) {
-    if (context && *context) {
-        delete *context;
-        *context = nullptr;
-    }
+void destroy_inference_context(RuneCoralContext *context) {
+    delete context;
 }
 
 RuneCoralInferenceResult infer(RuneCoralContext *context, const RuneCoralTensor *inputs, size_t num_inputs,

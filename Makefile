@@ -1,6 +1,7 @@
 SHELL := /bin/bash
 MAKEFILE_DIR := $(realpath $(dir $(lastword $(MAKEFILE_LIST))))
 OS := $(shell uname -s)
+DOCKER_IMAGE := tinyverseml/runecoral-cross-debian-stretch
 
 # Allowed CPU values: k8, armv7a, aarch64, darwin
 ifeq ($(OS),Linux)
@@ -73,7 +74,7 @@ librunecoral: runecoral/runecoral.cpp
 
 
 docker-image:
-	docker build $(DOCKER_IMAGE_OPTIONS) -t runecoral-cross-debian-stretch $(MAKEFILE_DIR)/docker
+	docker build $(DOCKER_IMAGE_OPTIONS) -t $(DOCKER_IMAGE) $(MAKEFILE_DIR)/docker
 
 clean:
 	rm -rf $(MAKEFILE_DIR)/bazel-* \

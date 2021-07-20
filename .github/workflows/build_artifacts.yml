@@ -17,7 +17,7 @@ jobs:
 
       - name: Checkout submodules
         run: git submodule update --init --recursive --force
-    
+
       - name: Install build dependencies
         run: |
             sudo sed -i "s/deb\ /deb \[arch=amd64\]\ /g" /etc/apt/sources.list
@@ -37,7 +37,7 @@ jobs:
       - name: Cache build dependencies
         uses: actions/cache@v2
         with:
-          key: ${{ runner.os }}-build-cache-librunecoral
+          key: ${{ runner.os }}-${{ github.workflow }}-${{ github.job }}
           path: ~/.cache/bazel
 
       - name: Build packages
@@ -51,3 +51,41 @@ jobs:
         with:
           name: ${{ github.run_id }}-librunecoral-artifacts-linux
           path: dist/
+
+  rust:
+    runs-on: ubuntu-18.04
+    steps:
+      - uses: actions/checkout@v1
+        with:
+          submodules: true
+      - uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+            rust/Cargo.lock
+            ~/.cache
+          key: ${{ runner.os }}-${{ github.workflow }}-${{ github.job }}-${{ hashFiles('**/Cargo.lock') }}
+      # libclang is needed by bindgen
+      - name: Install LLVM and Clang
+        uses: KyleMayes/install-llvm-action@v1
+        with:
+          version: "11.0"
+          directory: ${{ runner.temp }}/llvm
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+      - name: Check
+        uses: actions-rs/cargo@v1
+        with:
+          command: check
+          args: --manifest-path rust/Cargo.toml
+      - name: Test
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --manifest-path rust/Cargo.toml
