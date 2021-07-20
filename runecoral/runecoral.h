@@ -56,7 +56,7 @@ RuneCoralLoadResult create_inference_context(const char *mimetype, const void *m
                                              RuneCoralContext **inferenceContext);
 
 // frees all the resources allocated for a context
-void destroy_inference_context(RuneCoralContext **inferenceContext);
+void destroy_inference_context(RuneCoralContext *inferenceContext);
 
 // Modeled after TfLiteStatus for now
 typedef enum {

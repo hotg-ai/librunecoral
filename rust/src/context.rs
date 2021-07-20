@@ -15,8 +15,7 @@ impl InferenceContext {
 impl Drop for InferenceContext {
     fn drop(&mut self) {
         unsafe {
-            let mut ptr = self.ctx.as_ptr();
-            self.lib.destroy_inference_context(&mut ptr);
+            self.lib.destroy_inference_context(self.ctx.as_ptr());
         }
     }
 }

@@ -147,11 +147,8 @@ RuneCoralLoadResult create_inference_context(const char *mimetype, const void *m
     return result;
 }
 
-void destroy_inference_context(RuneCoralContext **context) {
-    if (context && *context) {
-        delete *context;
-        *context = nullptr;
-    }
+void destroy_inference_context(RuneCoralContext *context) {
+    delete context;
 }
 
 RuneCoralInferenceResult infer(RuneCoralContext *context, const RuneCoralTensor *inputs, size_t num_inputs,
