@@ -31,7 +31,7 @@ typedef struct {
   // Opaque bytes containing the tensor's data.
   void *data;
   // An array containing the length of each of the tensor's dimensions.
-  int *shape;
+  const int *shape;
   // How many dimensions are there?
   int rank;
 } RuneCoralTensor;
