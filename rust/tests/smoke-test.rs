@@ -22,7 +22,7 @@ fn create_inference_context() {
         .unwrap();
 
     rune_coral
-        .create_inference_context(mimetype, &[], &[], &[])
+        .create_inference_context(mimetype, b"AAAAAAAA", &[], &[])
         .unwrap();
 }
 
@@ -37,33 +37,40 @@ fn librunecoral() -> PathBuf {
     let project_root = project_root();
     let bin = project_root.join("bazel-bin/runecoral/librunecoral.so");
 
-    if !bin.exists() {
-        let home = std::env::var("HOME").unwrap();
-        let user = std::env::var("USER").unwrap();
-        let user_id = id("-u");
-        let group_id = id("-g");
-        let cpu = "k8";
+    let home = std::env::var("HOME").unwrap();
+    let user = std::env::var("USER").unwrap();
+    let user_id = id("-u");
+    let group_id = id("-g");
+    let cpu = "k8";
 
-        let mut cmd = Command::new("docker");
-        cmd.arg("run")
-            .arg("--rm")
-            .arg("-it")
-            .arg(format!(
-                "--volume={}:{}",
-                project_root.display(),
-                project_root.display()
-            ))
-            .arg(format!("--volume={}:{}", home, home))
-            .arg("--volume=/etc/group:/etc/group:ro")
-            .arg("--volume=/etc/passwd:/etc/passwd:ro")
-            .arg("--volume=/etc/localtime:/etc/localtime:ro")
-            .arg(format!("--user={}:{}", user_id, group_id))
-            .arg(format!("--env=HOME={}", home))
-            .arg(format!("--env=USER={}", user))
-            .arg(format!("--env=CPU={}", cpu))
-            .arg(format!("--workdir={}", project_root.display()))
-            .arg("runecoral-cross-debian-stretch")
-            .arg("make");
+    let mut cmd = Command::new("docker");
+    cmd.arg("run")
+        .arg("--rm")
+        .arg(format!(
+            "--volume={}:{}",
+            project_root.display(),
+            project_root.display()
+        ))
+        .arg(format!("--volume={}:{}", home, home))
+        .arg("--volume=/etc/group:/etc/group:ro")
+        .arg("--volume=/etc/passwd:/etc/passwd:ro")
+        .arg("--volume=/etc/localtime:/etc/localtime:ro")
+        .arg(format!("--user={}:{}", user_id, group_id))
+        .arg(format!("--env=HOME={}", home))
+        .arg(format!("--env=USER={}", user))
+        .arg(format!("--env=CPU={}", cpu))
+        .arg(format!("--workdir={}", project_root.display()))
+        .arg("runecoral-cross-debian-stretch")
+        .arg("make");
+
+    cmd.stdin(Stdio::null())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped());
+
+    let output = cmd.output().unwrap();
+
+    if !output.status.success() {
+        panic!("{:?} failed with {:?}", cmd, output);
     }
 
     bin
