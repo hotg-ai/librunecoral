@@ -67,71 +67,47 @@ RuneCoralLoadResult create_inference_context(const char *mimetype, const void *m
         return RuneCoralLoadResult__IncorrectMimeType;
     }
 
-    if (inferenceContext == nullptr) {
+    if (!(model && inputs && outputs && inferenceContext)) {
         return RuneCoralLoadResult__InternalError;
     }
 
-// TODO: Directly try to use libedgetpu
-// 1. Create tflite::FlatBufferModel which may contain edge TPU custom op.
-//
-// auto model =
-//    tflite::FlatBufferModel::BuildFromFile(model_file_name.c_str());
-//
-// 2. Create tflite::Interpreter.
-//
-// tflite::ops::builtin::BuiltinOpResolver resolver;
-// std::unique_ptr<tflite::Interpreter> interpreter;
-// tflite::InterpreterBuilder(model, resolver)(&interpreter);
-//
-// 3. Enumerate edge TPU devices.
-//
-// size_t num_devices;
-// std::unique_ptr<edgetpu_device, decltype(&edgetpu_free_devices)> devices(
-//     edgetpu_list_devices(&num_devices), &edgetpu_free_devices);
-//
-// assert(num_devices > 0);
-// const auto& device = devices.get()[0];
-//
-// 4. Modify interpreter with the delegate.
-//
-// auto* delegate =
-//     edgetpu_create_delegate(device.type, device.path, nullptr, 0);
-// interpreter->ModifyGraphWithDelegate({delegate, edgetpu_free_delegate});
-//
-// 5. Prepare input tensors and run inference.
-//
     RuneCoralLoadResult result = RuneCoralLoadResult__Ok;
 
     RuneCoralContext *context = new RuneCoralContext();
 
     //TODO: See if this can be improved with a 0 copy alternative
-    context->model = tflite::FlatBufferModel::BuildFromBuffer(reinterpret_cast<const char*>(model), model_len);
+    context->model = tflite::FlatBufferModel::VerifyAndBuildFromBuffer(reinterpret_cast<const char*>(model), model_len);
 
     // Create the interpreter
-    tflite::InterpreterBuilder(*(context->model), context->resolver)(&(context->interpreter));
-    if (!context->interpreter) {
-        LOG_E("Interpreter not ready");
-        result = RuneCoralLoadResult__InternalError;
-    } else {
-        if (context->interpreter->AllocateTensors() != kTfLiteOk) {
-            LOG_E("Interpreter unable to allocate tensors");
-            result = RuneCoralLoadResult__InternalError;
+    if (context->model) {
+        tflite::InterpreterBuilder(*(context->model), context->resolver)(&(context->interpreter));
+
+        if (context->interpreter) {
+                if (context->interpreter->AllocateTensors() != kTfLiteOk) {
+                LOG_E("Interpreter unable to allocate tensors");
+                result = RuneCoralLoadResult__InternalError;
+            } else {
+                context->edgetpu_devices = edgetpu_list_devices(&(context->edgetpu_device_count));
+
+                if (context->edgetpu_device_count > 0) {
+                    LOG_D("Edgetpu devices found. Trying to Update the interpreter to use the delegate.");
+                    const auto& device = context->edgetpu_devices[0];
+                    TfLiteDelegate* delegate = edgetpu_create_delegate(device.type, device.path, nullptr, 0);
+                    context->interpreter->ModifyGraphWithDelegate(std::unique_ptr<TfLiteDelegate, decltype(&edgetpu_free_delegate)>(delegate, &edgetpu_free_delegate));
+                }
+
+                if (context->interpreter->inputs().size() != num_inputs || context->interpreter->outputs().size() != num_outputs) {
+                    LOG_E("Interpreter inputs/outputs do not match the number of inputs/outputs passed");
+                    result = RuneCoralLoadResult__IncorrectArgumentSizes;
+                }
+            }
         } else {
-
-            context->edgetpu_devices = edgetpu_list_devices(&(context->edgetpu_device_count));
-
-            if (context->edgetpu_device_count > 0) {
-                LOG_D("Edgetpu devices found. Trying to Update the interpreter to use the delegate.");
-                const auto& device = context->edgetpu_devices[0];
-                TfLiteDelegate* delegate = edgetpu_create_delegate(device.type, device.path, nullptr, 0);
-                context->interpreter->ModifyGraphWithDelegate(std::unique_ptr<TfLiteDelegate, decltype(&edgetpu_free_delegate)>(delegate, &edgetpu_free_delegate));
-            }
-
-            if (context->interpreter->inputs().size() != num_inputs || context->interpreter->outputs().size() != num_outputs) {
-                LOG_E("Interpreter inputs/outputs do not match the number of inputs/outputs passed");
-                result = RuneCoralLoadResult__IncorrectArgumentSizes;
-            }
+            LOG_E("Interpreter not ready");
+            result = RuneCoralLoadResult__InternalError;
         }
+    } else {
+        LOG_E("Unable to create a TFlite Model from the buffer that is passed");
+        result = RuneCoralLoadResult__InternalError;
     }
 
     // Validate the input tensors of the interpreter
