@@ -8,6 +8,13 @@ use std::{
     time::SystemTime,
 };
 
+/// The environment variable that the user can provide to override which
+/// `librunecoral.so` binary is loaded for testing.
+///
+/// If this isn't provided, the library will be compiled from scratch using the
+/// `docker` image.
+const LIBRARY_ENV_VARIABLE: &str = "LIBRUNECORAL_SO";
+
 const RUNECORAL_BUILD_IMAGE: &str = "tinyverseml/runecoral-cross-debian-stretch";
 static LIBRUNECORAL: Lazy<PathBuf> = Lazy::new(librunecoral);
 
@@ -83,8 +90,7 @@ fn project_root() -> PathBuf {
 }
 
 fn librunecoral() -> PathBuf {
-    // Let the user override which `librunecoral.so` we load.
-    if let Ok(path) = std::env::var("LIBRUNECORAL_SO") {
+    if let Ok(path) = std::env::var(LIBRARY_ENV_VARIABLE) {
         let path = PathBuf::from(path);
         assert!(path.exists(), "Nothing found at \"{}\"", path.display());
         return path;

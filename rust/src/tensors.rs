@@ -1,11 +1,15 @@
+use std::borrow::Cow;
+
 use crate::ffi;
 
+/// The shape and element type of a [`Tensor`].
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub struct TensorDescriptor<'a> {
     pub element_type: ElementType,
     pub dimensions: &'a [ffi::size_t],
 }
 
+/// Possible element types that can be used in a [`Tensor`].
 #[derive(Debug, Copy, Clone, PartialEq)]
 #[non_exhaustive]
 pub enum ElementType {
@@ -24,10 +28,17 @@ pub enum ElementType {
     Complex128 = ffi::RuneCoralElementType__Complex128 as isize,
 }
 
+/// A Rust type that can be used as the element of a tensor.
+///
+/// This is an internal implementation detail and you shouldn't need to refer
+/// to it directly.
 pub trait TensorElement: Sized {
     const ELEMENT_TYPE: ElementType;
 
+    /// Reinterpret a slice of this [`TensorElement`] as an immutable byte array.
     fn byte_buffer(slice: &[Self]) -> &[u8];
+
+    /// Reinterpret a slice of this [`TensorElement`] as a mutable byte array.
     fn byte_buffer_mut(slice: &mut [Self]) -> &mut [u8];
 }
 
@@ -75,7 +86,7 @@ impl From<ElementType> for ffi::RuneCoralElementType {
 pub struct Tensor<'a> {
     pub element_type: ElementType,
     pub buffer: &'a [u8],
-    pub shape: Vec<ffi::size_t>,
+    pub shape: Cow<'a, [ffi::size_t]>,
 }
 
 impl<'a> Tensor<'a> {
@@ -88,11 +99,20 @@ impl<'a> Tensor<'a> {
         }
     }
 
+    /// Create a new [`Tensor`] backed by a slice.
     pub fn from_slice<E: TensorElement>(slice: &'a [E], dimensions: &[usize]) -> Self {
         Tensor {
             element_type: E::ELEMENT_TYPE,
             buffer: E::byte_buffer(slice),
             shape: dimensions.iter().map(|&d| d as ffi::size_t).collect(),
+        }
+    }
+
+    /// Get a [`TensorDescriptor`] that describes this tensor.
+    pub fn descriptor(&self) -> TensorDescriptor<'_> {
+        TensorDescriptor {
+            element_type: self.element_type,
+            dimensions: &self.shape,
         }
     }
 }
@@ -102,7 +122,7 @@ impl<'a> Tensor<'a> {
 pub struct TensorMut<'a> {
     pub element_type: ElementType,
     pub buffer: &'a mut [u8],
-    pub shape: Vec<ffi::size_t>,
+    pub shape: Cow<'a, [ffi::size_t]>,
 }
 
 impl<'a> TensorMut<'a> {
@@ -115,11 +135,20 @@ impl<'a> TensorMut<'a> {
         }
     }
 
+    /// Create a new [`TensorMut`] backed by a slice.
     pub fn from_slice<E: TensorElement>(slice: &'a mut [E], dimensions: &[usize]) -> Self {
         TensorMut {
             element_type: E::ELEMENT_TYPE,
             buffer: E::byte_buffer_mut(slice),
             shape: dimensions.iter().map(|&d| d as ffi::size_t).collect(),
+        }
+    }
+
+    /// Get a [`TensorDescriptor`] that describes this tensor.
+    pub fn descriptor(&self) -> TensorDescriptor<'_> {
+        TensorDescriptor {
+            element_type: self.element_type,
+            dimensions: &self.shape,
         }
     }
 }
