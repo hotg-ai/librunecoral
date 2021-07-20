@@ -62,7 +62,7 @@ jobs:
             ~/.cargo/registry
             ~/.cargo/git
             target
-            python/target
+            ~/.cache
           key: ${{ runner.os }}-${{ github.workflow }}-${{ github.job }}-${{ hashFiles('**/Cargo.lock') }}
       # libclang is needed by bindgen
       - name: Install LLVM and Clang
@@ -79,8 +79,10 @@ jobs:
       - name: Check
         uses: actions-rs/cargo@v1
         with:
-          command: check --manifest-path rust/Cargo.toml
+          command: check
+          args: --manifest-path rust/Cargo.toml
       - name: Test
         uses: actions-rs/cargo@v1
         with:
-          command: test --manifest-path rust/Cargo.toml
+          command: test
+          args: --manifest-path rust/Cargo.toml
