@@ -1,6 +1,7 @@
 use once_cell::sync::Lazy;
 use runecoral::{ElementType, Error, LoadError, RuneCoral, Tensor, TensorDescriptor, TensorMut};
 use std::{
+    borrow::Cow,
     ffi::CStr,
     io,
     path::{Path, PathBuf},
@@ -59,7 +60,7 @@ fn run_inference_using_the_sine_model() {
     let model = include_bytes!("sinemodel.tflite");
     let descriptors = [TensorDescriptor {
         element_type: ElementType::Float32,
-        dimensions: &[1, 1],
+        shape: Cow::Borrowed(&[1, 1]),
     }];
 
     let mut ctx = rune_coral

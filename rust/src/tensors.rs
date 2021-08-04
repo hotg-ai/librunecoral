@@ -3,10 +3,10 @@ use std::borrow::Cow;
 use crate::ffi;
 
 /// The shape and element type of a [`Tensor`].
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct TensorDescriptor<'a> {
     pub element_type: ElementType,
-    pub dimensions: &'a [ffi::size_t],
+    pub shape: Cow<'a, [ffi::size_t]>,
 }
 
 /// Possible element types that can be used in a [`Tensor`].
@@ -112,7 +112,7 @@ impl<'a> Tensor<'a> {
     pub fn descriptor(&self) -> TensorDescriptor<'_> {
         TensorDescriptor {
             element_type: self.element_type,
-            dimensions: &self.shape,
+            shape: Cow::Borrowed(&self.shape),
         }
     }
 }
@@ -148,7 +148,7 @@ impl<'a> TensorMut<'a> {
     pub fn descriptor(&self) -> TensorDescriptor<'_> {
         TensorDescriptor {
             element_type: self.element_type,
-            dimensions: &self.shape,
+            shape: Cow::Borrowed(&self.shape),
         }
     }
 }

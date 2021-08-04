@@ -96,8 +96,8 @@ fn dummy_tensors(inputs: &[TensorDescriptor<'_>]) -> Vec<ffi::RuneCoralTensor> {
         let tensor = ffi::RuneCoralTensor {
             type_: input.element_type as ffi::RuneCoralElementType,
             data: ptr::null_mut(),
-            shape: input.dimensions.as_ptr(),
-            rank: input.dimensions.len() as _,
+            shape: input.shape.as_ptr(),
+            rank: input.shape.len() as _,
         };
         tensors.push(tensor);
     }
