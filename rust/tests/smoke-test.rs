@@ -1,5 +1,5 @@
 use once_cell::sync::Lazy;
-use runecoral::{ElementType, Error, LoadError, RuneCoral, Tensor, TensorDescriptor, TensorMut};
+use hotg_runecoral::{ElementType, Error, LoadError, RuneCoral, Tensor, TensorDescriptor, TensorMut};
 use std::{
     borrow::Cow,
     ffi::CStr,
@@ -20,7 +20,7 @@ const RUNECORAL_BUILD_IMAGE: &str = "tinyverseml/runecoral-cross-debian-stretch"
 static LIBRUNECORAL: Lazy<PathBuf> = Lazy::new(librunecoral);
 
 fn mimetype() -> &'static str {
-    CStr::from_bytes_with_nul(runecoral::ffi::RUNE_CORAL_MIME_TYPE__TFLITE)
+    CStr::from_bytes_with_nul(hotg_runecoral::ffi::RUNE_CORAL_MIME_TYPE__TFLITE)
         .unwrap()
         .to_str()
         .unwrap()

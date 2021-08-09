@@ -5,7 +5,7 @@
 //! ```rust,no_run
 //! # fn load_model() -> &'static [u8] { todo!() }
 //! # fn main() -> Result<(), Box<dyn std::error::Error>> {
-//! use runecoral::{RuneCoral, Tensor, TensorMut};
+//! use hotg_runecoral::{RuneCoral, Tensor, TensorMut};
 //!
 //! // load the library
 //! let rune_coral = RuneCoral::load("librunecoral.so")?;
