@@ -4,8 +4,7 @@ use bindgen::Builder;
 
 fn main() {
     let manifest_dir: PathBuf = std::env::var("CARGO_MANIFEST_DIR").unwrap().into();
-    let project_root = manifest_dir.parent().unwrap();
-    let header_file = project_root.join("runecoral").join("runecoral.h");
+    let header_file = manifest_dir.join("runecoral.h");
 
     let bindings = Builder::default()
         .header(header_file.display().to_string())
