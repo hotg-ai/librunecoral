@@ -14,9 +14,15 @@ jobs:
 
     steps:
       - uses: actions/checkout@v1
+        with:
+          submodules: true
 
-      - name: Checkout submodules
-        run: git submodule update --init --recursive --force
+      - name: Cache build dependencies
+        uses: actions/cache@v2
+        with:
+          key: ${{ runner.os }}-${{ github.workflow }}-${{ github.job }}
+          path: |
+            ~/.cache
 
       - name: Install build dependencies
         run: |
@@ -33,12 +39,6 @@ jobs:
             wget -O /tmp/bazel https://github.com/bazelbuild/bazel/releases/download/4.0.0/bazel-4.0.0-installer-linux-x86_64.sh
             sudo bash /tmp/bazel
             sudo rm -f /tmp/bazel
-
-      - name: Cache build dependencies
-        uses: actions/cache@v2
-        with:
-          key: ${{ runner.os }}-${{ github.workflow }}-${{ github.job }}
-          path: ~/.cache/bazel
 
       - name: Build packages
         run: |
