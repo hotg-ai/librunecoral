@@ -20,6 +20,8 @@ extern "C" {
 #define LOG_D(x)  // nothing
 #endif
 
+const char* RUNE_CORAL_MIME_TYPE__TFLITE = "application/tflite-model";
+
 RuneCoralLoadResult compare_tensors(const RuneCoralTensor &runeTensor, const TfLiteTensor &tfLiteTensor) {
     if (static_cast<int>(runeTensor.type) != static_cast<int>(tfLiteTensor.type)) {
         LOG_E("Tensor types mismatch")
