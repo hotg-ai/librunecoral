@@ -1,6 +1,8 @@
 #include <iostream>
 #include <sinemodel.h>
 #include <vector>
+#include <cassert>
+#include <cmath>
 
 extern "C" {
 #include <runecoral.h>
@@ -24,6 +26,7 @@ int main(int argc, char* argv[]) {
         std::cout << "Created context for inference" << std::endl;
         auto result = infer(context, inputs, 1, outputs, 1);
         if (result == RuneCoralInferenceResult__Ok) {
+            assert(std::fabs(outputData[0] -  0.697279f) < 0.00001);
             std::cout << "Inference result = " << outputData[0] << std::endl;
         } else {
             std::cerr << "Inference failed with error code: " << static_cast<int>(result) << std::endl;
