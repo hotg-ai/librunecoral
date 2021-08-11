@@ -28,12 +28,12 @@ RuneCoralLoadResult compare_tensors(const RuneCoralTensor &runeTensor, const TfL
         return RuneCoralLoadResult__IncorrectArgumentTypes;
     }
 
-    if (runeTensor.rank != tfLiteTensor.dims->size) {
+    if (static_cast<int>(runeTensor.rank) != tfLiteTensor.dims->size) {
         LOG_E("Tensor rank mismatch.");
         return RuneCoralLoadResult__IncorrectArgumentSizes;
     }
 
-    for (int i = 0; i < runeTensor.rank; i ++) {
+    for (size_t i = 0; i < runeTensor.rank; i ++) {
         if (runeTensor.shape[i] != tfLiteTensor.dims->data[i]) {
             LOG_E("Tensor shape mismatch");
             return RuneCoralLoadResult__IncorrectArgumentSizes;
