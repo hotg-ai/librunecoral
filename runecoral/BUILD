@@ -1,3 +1,4 @@
+load("cc_static_library.bzl", "cc_static_library")
 package(
     default_visibility = ["//visibility:public"],
 )
@@ -12,10 +13,33 @@ cc_binary(
     linkopts = select({
         "//conditions:default": ["-shared"],
     }),
-    deps = [
+   deps = [
       "@libedgetpu//tflite/public:edgetpu_c",
       "@libedgetpu//tflite/public:oss_edgetpu_direct_pci",
       "@org_tensorflow//tensorflow/lite:framework",
       "@org_tensorflow//tensorflow/lite/kernels:builtin_ops",  # BuiltinOpResolver
-    ],
+    ]
 )
+
+cc_library(
+    name = "_runecoralstatic",
+    srcs = [
+        "runecoral.cpp",
+        "runecoral.h",
+    ],
+    # hdrs = ["runecoral.h"],
+   deps = [
+      "@libedgetpu//tflite/public:edgetpu_c",
+      "@libedgetpu//tflite/public:oss_edgetpu_direct_pci",
+      "@org_tensorflow//tensorflow/lite:framework",
+      "@org_tensorflow//tensorflow/lite/kernels:builtin_ops",  # BuiltinOpResolver
+    ]
+)
+
+cc_static_library(
+    name = "runecoral",
+    deps = [
+      "_runecoralstatic"
+    ]
+)
+

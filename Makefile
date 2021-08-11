@@ -32,6 +32,7 @@ COMMON_BAZEL_BUILD_FLAGS := --compilation_mode=$(COMPILATION_MODE) \
                             --define darwinn_portable=1 \
                             --cpu=$(CPU) \
                             --experimental_repo_remote_exec \
+                            --force_pic \
                             $(COMMON_BAZEL_BUILD_FLAGS_$(OS))
 
 ifeq ($(COMPILATION_MODE), opt)
@@ -67,11 +68,9 @@ runecoral_header: runecoral/runecoral.h
 	install runecoral/runecoral.h $(MAKEFILE_DIR)/dist/include
 
 librunecoral: runecoral/runecoral.cpp
-	bazel build $(BAZEL_BUILD_FLAGS) //runecoral:librunecoral.so
+	bazel build $(BAZEL_BUILD_FLAGS) //runecoral:runecoral
 	mkdir -p $(RUNE_CORAL_DIST_DIR)/
-	# install bazel-bin/runecoral/librunecoral.a $(RUNE_CORAL_DIST_DIR)
-	install bazel-bin/runecoral/librunecoral.so $(RUNE_CORAL_DIST_DIR)
-
+	install bazel-bin/runecoral/librunecoral.a $(RUNE_CORAL_DIST_DIR)
 
 docker-image:
 	docker build $(DOCKER_IMAGE_OPTIONS) -t $(DOCKER_IMAGE) $(MAKEFILE_DIR)/docker
