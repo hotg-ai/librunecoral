@@ -47,6 +47,15 @@ jobs:
             CPU=aarch64 make
             bazel shutdown
 
+      - name: Test example
+        run: |
+            cd example
+            mkdir -p build
+            cd build
+            cmake ..
+            make
+            ./runecoralexample
+
       - uses: actions/upload-artifact@v2
         with:
           name: ${{ github.run_id }}-librunecoral-artifacts-linux
