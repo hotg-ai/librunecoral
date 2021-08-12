@@ -82,6 +82,6 @@ clean:
 
 help:
 	@echo "make all          - Build all native code"
-	@echo "make runecoral       - Build pycoral native code"
+	@echo "make runecoral    - Build native code"
 	@echo "make clean        - Remove generated files"
 	@echo "make help         - Print help message"

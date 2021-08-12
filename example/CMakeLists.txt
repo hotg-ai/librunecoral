@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.5)
 project(runecoralexample)
 
+set(CMAKE_CXX_STANDARD 17)
 set(LIBRUNECORAL_DIR ${CMAKE_SOURCE_DIR}/third_party/librunecoral)
 include(cmake/EmbedResources.cmake)
 
@@ -22,6 +23,6 @@ else()
 endif()
 
 target_include_directories(${PROJECT_NAME} PRIVATE ${LIBRUNECORAL_DIR}/include ${CMAKE_BINARY_DIR})
-target_link_libraries(${PROJECT_NAME} PRIVATE Threads::Threads ${CMAKE_DL_LIBS} -L${LIBRUNECORAL_LIB_DIR} -lrunecoral)
+target_link_libraries(${PROJECT_NAME} PRIVATE -L${LIBRUNECORAL_LIB_DIR} -lrunecoral Threads::Threads ${CMAKE_DL_LIBS})
 
 install(TARGETS ${PROJECT_NAME} DESTINATION ${CMAKE_INSTALL_PREFIX}/)

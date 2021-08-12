@@ -1,4 +1,4 @@
-//! Bindings for loading `librunecoral.so` at runtime.
+//! Bindings for exposing the functionality of librunecoral.a
 //!
 //! # Example
 //!
