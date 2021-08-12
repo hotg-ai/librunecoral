@@ -5,10 +5,7 @@
 //! ```rust,no_run
 //! # fn load_model() -> &'static [u8] { todo!() }
 //! # fn main() -> Result<(), Box<dyn std::error::Error>> {
-//! use hotg_runecoral::{RuneCoral, Tensor, TensorMut};
-//!
-//! // load the library
-//! let rune_coral = RuneCoral::load("librunecoral.so")?;
+//! use hotg_runecoral::{Tensor, TensorMut, create_inference_context};
 //!
 //! // load the model
 //! let model: &[u8] = load_model();
@@ -22,7 +19,7 @@
 //! let output_tensor = TensorMut::from_slice(&mut output, &[1]);
 //!
 //! // load our inference backend
-//! let mut ctx = rune_coral.create_inference_context(
+//! let mut ctx = create_inference_context(
 //!     "application/tflite-context",
 //!     model,
 //!     &[input_tensor.descriptor()],
@@ -45,7 +42,7 @@ mod tensors;
 
 pub use crate::{
     context::InferenceContext,
-    rune_coral::{LoadError, RuneCoral},
+    rune_coral::{LoadError, create_inference_context},
     tensors::{ElementType, Tensor, TensorDescriptor, TensorElement, TensorMut},
 };
 

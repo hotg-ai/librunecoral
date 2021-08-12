@@ -1,14 +1,12 @@
 use crate::{ffi, Tensor, TensorMut};
 use std::{
     fmt::{self, Debug, Formatter},
-    ptr::NonNull,
-    sync::Arc,
+    ptr::NonNull
 };
 
 /// A backend which can run inference on a model.
 pub struct InferenceContext {
     ctx: NonNull<ffi::RuneCoralContext>,
-    lib: Arc<ffi::RuneCoral>,
 }
 
 impl InferenceContext {
@@ -20,9 +18,8 @@ impl InferenceContext {
     /// drop.
     pub(crate) unsafe fn new(
         ctx: NonNull<ffi::RuneCoralContext>,
-        lib: Arc<ffi::RuneCoral>,
     ) -> Self {
-        InferenceContext { ctx, lib }
+        InferenceContext { ctx }
     }
 
     pub fn infer(
@@ -38,7 +35,7 @@ impl InferenceContext {
             let inputs: Vec<_> = inputs.iter().map(|t| t.as_coral_tensor()).collect();
             let mut outputs: Vec<_> = outputs.iter_mut().map(|t| t.as_coral_tensor()).collect();
 
-            let ret = self.lib.infer(
+            let ret = ffi::infer(
                 self.ctx.as_ptr(),
                 inputs.as_ptr() as *mut _,
                 inputs.len() as ffi::size_t,
@@ -60,7 +57,7 @@ impl Debug for InferenceContext {
 impl Drop for InferenceContext {
     fn drop(&mut self) {
         unsafe {
-            self.lib.destroy_inference_context(self.ctx.as_ptr());
+            ffi::destroy_inference_context(self.ctx.as_ptr());
         }
     }
 }
