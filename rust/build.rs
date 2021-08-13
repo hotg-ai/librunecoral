@@ -1,9 +1,4 @@
-use std::{
-    io,
-    path::{Path, PathBuf},
-    process::{Command, Output, Stdio},
-    time::SystemTime,
-};
+use std::{io, path::{Path, PathBuf}, process::{Command, Output, Stdio}, time::SystemTime};
 
 use bindgen::Builder;
 
@@ -13,6 +8,14 @@ fn project_root() -> PathBuf {
         .parent()
         .unwrap()
         .to_path_buf()
+}
+
+fn librunecoral_path() -> PathBuf  {
+    project_root()
+        .join("dist")
+        .join("lib")
+        .join(std::env::var("CARGO_CFG_TARGET_OS").unwrap())
+        .join(std::env::var("CARGO_CFG_TARGET_ARCH").unwrap())
 }
 
 fn last_touched(path: impl AsRef<Path>) -> Result<SystemTime, io::Error> {
@@ -43,7 +46,7 @@ fn id(flag: &str) -> u64 {
 
 fn make_librunecoral() -> PathBuf {
     let project_root = project_root();
-    let bin = project_root.join("bazel-bin/runecoral/librunecoral.a");
+    let bin = project_root.join(librunecoral_path());
 
     if bin.exists()
         && last_touched(&bin).unwrap() >= last_touched(project_root.join("runecoral")).unwrap()
@@ -59,8 +62,10 @@ fn make_librunecoral() -> PathBuf {
     let user_id = id("-u");
     let group_id = id("-g");
 
-    // FIXME: Parameterize the target CPU architecture
-    let cpu = "k8";
+    let cpu = match std::env::var("CARGO_CFG_TARGET_ARCH").unwrap().as_ref() {
+        "x86_64" => "k8".to_string(),
+        _ => std::env::var("CARGO_CFG_TARGET_ARCH").unwrap()
+    };
 
     let mut cmd = Command::new("docker");
     cmd.arg("run")
@@ -118,7 +123,7 @@ fn main() {
 
     make_librunecoral();
 
-    println!("cargo:rustc-link-search={}", project_root().join("bazel-bin/runecoral/").display().to_string());
+    println!("cargo:rustc-link-search={}", project_root().join(librunecoral_path()).display().to_string());
     println!("cargo:rustc-link-lib=runecoral");
     println!("cargo:rustc-flags=-l dylib=stdc++");
 
