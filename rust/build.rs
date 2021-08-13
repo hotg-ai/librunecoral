@@ -124,7 +124,6 @@ fn main() {
 
     let bindings = Builder::default()
         .header(header_file.display().to_string())
-        .dynamic_link_require_all(true)
         .derive_debug(true)
         .derive_copy(true)
         .derive_default(true)

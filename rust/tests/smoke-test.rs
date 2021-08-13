@@ -21,7 +21,7 @@ fn mimetype() -> &'static str {
 fn create_inference_context_with_invalid_model() {
     let model = b"this is not a valid model";
 
-    let _ = hotg_runecoral::create_inference_context(mimetype(), model, &[], &[])
+    let _ = hotg_runecoral::InferenceContext::create_context(mimetype(), model, &[], &[])
         .unwrap();
 }
 
@@ -29,7 +29,7 @@ fn create_inference_context_with_invalid_model() {
 fn create_inference_context_with_incorrect_number_of_tensors() {
     let model = include_bytes!("sinemodel.tflite");
 
-    let err = hotg_runecoral::create_inference_context(mimetype(), model, &[], &[])
+    let err = hotg_runecoral::InferenceContext::create_context(mimetype(), model, &[], &[])
         .unwrap_err();
 
     assert_eq!(err, Error::Load(LoadError::IncorrectArgumentSizes));
@@ -43,7 +43,7 @@ fn run_inference_using_the_sine_model() {
         shape: Cow::Borrowed(&[1, 1]),
     }];
 
-    let mut ctx = hotg_runecoral::create_inference_context(mimetype(), model, &descriptors, &descriptors)
+    let mut ctx = hotg_runecoral::InferenceContext::create_context(mimetype(), model, &descriptors, &descriptors)
         .unwrap();
 
     let input = [0.5_f32];
