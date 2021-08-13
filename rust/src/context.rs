@@ -102,7 +102,7 @@ impl Drop for InferenceContext {
     }
 }
 
-    /// Get a list of dummy empty tensors for a given a list of tensor descriptors
+/// Get a list of dummy empty tensors for a given a list of tensor descriptors
 pub fn dummy_tensors(inputs: &[TensorDescriptor<'_>]) -> Vec<ffi::RuneCoralTensor> {
     let mut tensors = Vec::new();
 
