@@ -1,7 +1,6 @@
 cmake_minimum_required(VERSION 3.5)
 project(runecoralexample)
 
-set(CMAKE_CXX_STANDARD 17)
 set(LIBRUNECORAL_DIR ${CMAKE_SOURCE_DIR}/third_party/librunecoral)
 include(cmake/EmbedResources.cmake)
 
