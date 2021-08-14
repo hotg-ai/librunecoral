@@ -20,18 +20,20 @@ extern "C" {
 #define LOG_D(x)  // nothing
 #endif
 
+const char* RUNE_CORAL_MIME_TYPE__TFLITE = "application/tflite-model";
+
 RuneCoralLoadResult compare_tensors(const RuneCoralTensor &runeTensor, const TfLiteTensor &tfLiteTensor) {
     if (static_cast<int>(runeTensor.type) != static_cast<int>(tfLiteTensor.type)) {
         LOG_E("Tensor types mismatch")
         return RuneCoralLoadResult__IncorrectArgumentTypes;
     }
 
-    if (runeTensor.rank != tfLiteTensor.dims->size) {
+    if (static_cast<int>(runeTensor.rank) != tfLiteTensor.dims->size) {
         LOG_E("Tensor rank mismatch.");
         return RuneCoralLoadResult__IncorrectArgumentSizes;
     }
 
-    for (int i = 0; i < runeTensor.rank; i ++) {
+    for (size_t i = 0; i < runeTensor.rank; i ++) {
         if (runeTensor.shape[i] != tfLiteTensor.dims->data[i]) {
             LOG_E("Tensor shape mismatch");
             return RuneCoralLoadResult__IncorrectArgumentSizes;

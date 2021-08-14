@@ -2,7 +2,7 @@
 
 #include <stddef.h>
 
-const char *RUNE_CORAL_MIME_TYPE__TFLITE = "application/tflite-model";
+extern const char *RUNE_CORAL_MIME_TYPE__TFLITE;
 
 // These types match the TfLiteType from tensorflow.
 // When modifying these types, only add to this enum
