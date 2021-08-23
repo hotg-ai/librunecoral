@@ -29,8 +29,8 @@ cc_library(
     ],
     # hdrs = ["runecoral.h"],
    deps = [
-      "@libedgetpu//tflite/public:edgetpu_c",
-      "@libedgetpu//tflite/public:oss_edgetpu_direct_pci",
+    #   "@libedgetpu//tflite/public:edgetpu_c",
+    #   "@libedgetpu//tflite/public:oss_edgetpu_direct_pci",
       "@org_tensorflow//tensorflow/lite:framework",
       "@org_tensorflow//tensorflow/lite/kernels:builtin_ops",  # BuiltinOpResolver
     ]

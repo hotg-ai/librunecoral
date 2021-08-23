@@ -1,7 +1,8 @@
 SHELL := /bin/bash
 MAKEFILE_DIR := $(realpath $(dir $(lastword $(MAKEFILE_LIST))))
 OS := $(shell uname -s)
-DOCKER_IMAGE := tinyverseml/runecoral-cross-debian-stretch
+DOCKER_IMAGE_LINUX := tinyverseml/runecoral-cross-debian-stretch
+DOCKER_IMAGE_ANDROID := tinyverseml/runecoral-cross-android
 
 # Allowed CPU values: k8, armv7a, aarch64, darwin
 ifeq ($(OS),Linux)
@@ -21,7 +22,6 @@ ifeq ($(filter $(COMPILATION_MODE),opt dbg fastbuild),)
 $(error COMPILATION_MODE must be opt, dbg or fastbuild)
 endif
 
-BAZEL_OUT_DIR :=  $(MAKEFILE_DIR)/bazel-out/$(CPU)-$(COMPILATION_MODE)/bin
 COMMON_BAZEL_BUILD_FLAGS_Linux := --crosstool_top=@crosstool//:toolchains \
                                   --compiler=gcc
 COMMON_BAZEL_BUILD_FLAGS_Darwin :=
@@ -61,19 +61,25 @@ BAZEL_BUILD_FLAGS := $(COMMON_BAZEL_BUILD_FLAGS) \
 
 all: dist
 
-dist: runecoral_header librunecoral
+dist: runecoral_header librunecoral-linux
 
 runecoral_header: runecoral/runecoral.h
 	mkdir -p $(MAKEFILE_DIR)/dist/include
 	install runecoral/runecoral.h $(MAKEFILE_DIR)/dist/include
 
-librunecoral: runecoral/runecoral.cpp
+librunecoral-linux: runecoral/runecoral.cpp
 	bazel build $(BAZEL_BUILD_FLAGS) //runecoral:runecoral
 	mkdir -p $(RUNE_CORAL_DIST_DIR)/
-	install bazel-bin/runecoral/librunecoral.a $(RUNE_CORAL_DIST_DIR)
 
-docker-image:
-	docker build $(DOCKER_IMAGE_OPTIONS) -t $(DOCKER_IMAGE) $(MAKEFILE_DIR)/docker
+librunecoral-android: runecoral/runecoral.cpp
+	bazel build --config android_arm64 //runecoral:runecoral
+
+docker-image-linux:
+	docker build $(DOCKER_IMAGE_OPTIONS) -t $(DOCKER_IMAGE_LINUX) -f $(MAKEFILE_DIR)/docker/Dockerfile.Linux $(MAKEFILE_DIR)/docker
+
+docker-image-android:
+	docker build $(DOCKER_IMAGE_OPTIONS) -t $(DOCKER_IMAGE_ANDROID) -f $(MAKEFILE_DIR)/docker/Dockerfile.Android $(MAKEFILE_DIR)/docker
+
 
 clean:
 	rm -rf $(MAKEFILE_DIR)/bazel-* \
@@ -81,7 +87,7 @@ clean:
 	       $(MAKEFILE_DIR)/dist
 
 help:
-	@echo "make all          - Build all native code"
-	@echo "make runecoral    - Build native code"
-	@echo "make clean        - Remove generated files"
-	@echo "make help         - Print help message"
+	@echo "make all                   - Build all native code"
+	@echo "make librunecoral-linux    - Build native code"
+	@echo "make clean                 - Remove generated files"
+	@echo "make help                  - Print help message"

@@ -46,6 +46,16 @@ typedef enum {
   RuneCoralLoadResult__InternalError,
 } RuneCoralLoadResult;
 
+
+typedef enum {
+  RuneCoralAccelerationBackend__None = 0,
+  RuneCoralAccelerationBackend__Libedgetpu = 1,
+  RuneCoralAccelerationBackend__Gpu = 2
+} RuneCoralAccelerationBackend;
+
+// Returns an int with all the backends that are available
+int availableAccelerationBackends();
+
 // Load a model using its "mimetype" to figure out what format the model is in
 // Only "application/tflite-model" is accepted at this time.
 // And then create an interpreter for the model to be interpreted
@@ -53,6 +63,7 @@ typedef enum {
 RuneCoralLoadResult create_inference_context(const char *mimetype, const void *model, size_t model_len,
                                              const RuneCoralTensor *inputs, size_t num_inputs,
                                              const RuneCoralTensor *outputs, size_t num_outputs,
+                                             const RuneCoralAccelerationBackend backend,
                                              RuneCoralContext **inferenceContext);
 
 // frees all the resources allocated for a context

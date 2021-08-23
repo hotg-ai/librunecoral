@@ -10,7 +10,10 @@ extern "C" {
 #include "tensorflow/lite/interpreter.h"
 #include "tensorflow/lite/kernels/register.h"
 #include "tensorflow/lite/model_builder.h"
+
+#ifdef RUNECORAL_EDGETPU_BACKEND
 #include "tflite/public/edgetpu_c.h"
+#endif
 
 #ifdef RUNECORAL_ENABLE_LOGGING
 #define LOG_E(x)  {  std::cerr << "[runecoral] " << x << std::endl; }
@@ -47,6 +50,7 @@ struct RuneCoralContext {
     std::unique_ptr<tflite::FlatBufferModel> model;
     tflite::ops::builtin::BuiltinOpResolver resolver;
     std::unique_ptr<tflite::Interpreter> interpreter;
+#ifdef RUNECORAL_EDGETPU_BACKEND
     size_t edgetpu_device_count = 0;
     struct edgetpu_device* edgetpu_devices = nullptr;
 
@@ -57,11 +61,45 @@ struct RuneCoralContext {
             edgetpu_devices = nullptr;
         }
     }
+#endif
 };
+
+int availableAccelerationBackends() {
+    int result = RuneCoralAccelerationBackend__None;
+    //TODO
+#ifdef RUNECORAL_EDGETPU_BACKEND
+    result |= RuneCoralAccelerationBackend__Libedgetpu;
+#endif
+
+#ifdef RUNECORAL_GPU_BACKEND
+    result |= RuneCoralAccelerationBackend__Gpu;
+#endif
+
+    return result;
+}
+
+bool accelerateInterpreter(const RuneCoralAccelerationBackend backend, RuneCoralContext *context) {
+
+#ifdef RUNECORAL_EDGETPU_BACKEND
+    if (backend & RuneCoralAccelerationBackend__Libedgetpu) {
+        context->edgetpu_devices = edgetpu_list_devices(&(context->edgetpu_device_count));
+
+        if (context->edgetpu_device_count > 0) {
+            LOG_D("Edgetpu devices found. Trying to Update the interpreter to use the delegate.");
+            const auto& device = context->edgetpu_devices[0];
+            TfLiteDelegate* delegate = edgetpu_create_delegate(device.type, device.path, nullptr, 0);
+            context->interpreter->ModifyGraphWithDelegate(std::unique_ptr<TfLiteDelegate, decltype(&edgetpu_free_delegate)>(delegate, &edgetpu_free_delegate));
+        }
+        return true;
+    }
+#endif
+    return false;
+}
 
 RuneCoralLoadResult create_inference_context(const char *mimetype, const void *model, size_t model_len,
                                              const RuneCoralTensor *inputs, size_t num_inputs,
                                              const RuneCoralTensor *outputs, size_t num_outputs,
+                                             const RuneCoralAccelerationBackend backend,
                                              RuneCoralContext **inferenceContext) {
     if (strcmp(mimetype, RUNE_CORAL_MIME_TYPE__TFLITE) != 0) {
         LOG_E("Invalid Tensor Mimetype");
@@ -84,19 +122,11 @@ RuneCoralLoadResult create_inference_context(const char *mimetype, const void *m
         tflite::InterpreterBuilder(*(context->model), context->resolver)(&(context->interpreter));
 
         if (context->interpreter) {
-                if (context->interpreter->AllocateTensors() != kTfLiteOk) {
+            if (context->interpreter->AllocateTensors() != kTfLiteOk) {
                 LOG_E("Interpreter unable to allocate tensors");
                 result = RuneCoralLoadResult__InternalError;
             } else {
-                context->edgetpu_devices = edgetpu_list_devices(&(context->edgetpu_device_count));
-
-                if (context->edgetpu_device_count > 0) {
-                    LOG_D("Edgetpu devices found. Trying to Update the interpreter to use the delegate.");
-                    const auto& device = context->edgetpu_devices[0];
-                    TfLiteDelegate* delegate = edgetpu_create_delegate(device.type, device.path, nullptr, 0);
-                    context->interpreter->ModifyGraphWithDelegate(std::unique_ptr<TfLiteDelegate, decltype(&edgetpu_free_delegate)>(delegate, &edgetpu_free_delegate));
-                }
-
+                accelerateInterpreter(backend, context);
                 if (context->interpreter->inputs().size() != num_inputs || context->interpreter->outputs().size() != num_outputs) {
                     LOG_E("Interpreter inputs/outputs do not match the number of inputs/outputs passed");
                     result = RuneCoralLoadResult__IncorrectArgumentSizes;
