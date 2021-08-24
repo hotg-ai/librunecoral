@@ -5,23 +5,13 @@ extern "C" {
 #include <cstring>
 #include <vector>
 #include <algorithm>
-#include <iostream>
 
 #include "tensorflow/lite/interpreter.h"
 #include "tensorflow/lite/kernels/register.h"
 #include "tensorflow/lite/model_builder.h"
 
-#ifdef RUNECORAL_EDGETPU_BACKEND
-#include "tflite/public/edgetpu_c.h"
-#endif
-
-#ifdef RUNECORAL_ENABLE_LOGGING
-#define LOG_E(x)  {  std::cerr << "[runecoral] " << x << std::endl; }
-#define LOG_D(x)  {  std::cerr << "[runecoral] " << x << std::endl; }
-#else
-#define LOG_E(x)  // nothing
-#define LOG_D(x)  // nothing
-#endif
+#include "private/accelerationbackends.h"
+#include "private/utils.h"
 
 const char* RUNE_CORAL_MIME_TYPE__TFLITE = "application/tflite-model";
 
@@ -50,25 +40,17 @@ struct RuneCoralContext {
     std::unique_ptr<tflite::FlatBufferModel> model;
     tflite::ops::builtin::BuiltinOpResolver resolver;
     std::unique_ptr<tflite::Interpreter> interpreter;
-#ifdef RUNECORAL_EDGETPU_BACKEND
-    size_t edgetpu_device_count = 0;
-    struct edgetpu_device* edgetpu_devices = nullptr;
-
-    ~RuneCoralContext() {
-        LOG_D("Cleaning up Edgetpu context");
-        if (edgetpu_devices) {
-            edgetpu_free_devices(edgetpu_devices);
-            edgetpu_devices = nullptr;
-        }
-    }
-#endif
+    std::unique_ptr<AccelerationBackend> accelerationBackend;
 };
 
 int availableAccelerationBackends() {
     int result = RuneCoralAccelerationBackend__None;
-    //TODO
+    //TODO : Add Runtime checks to this too
 #ifdef RUNECORAL_EDGETPU_BACKEND
-    result |= RuneCoralAccelerationBackend__Libedgetpu;
+    EdgetpuAccelerationBackend edgeTpuBackend;
+    if (edgeTpuBackend.isAvailable()) {
+        result |= RuneCoralAccelerationBackend__Libedgetpu;
+    }
 #endif
 
 #ifdef RUNECORAL_GPU_BACKEND
@@ -79,21 +61,20 @@ int availableAccelerationBackends() {
 }
 
 bool accelerateInterpreter(const RuneCoralAccelerationBackend backend, RuneCoralContext *context) {
-
 #ifdef RUNECORAL_EDGETPU_BACKEND
     if (backend & RuneCoralAccelerationBackend__Libedgetpu) {
-        context->edgetpu_devices = edgetpu_list_devices(&(context->edgetpu_device_count));
-
-        if (context->edgetpu_device_count > 0) {
-            LOG_D("Edgetpu devices found. Trying to Update the interpreter to use the delegate.");
-            const auto& device = context->edgetpu_devices[0];
-            TfLiteDelegate* delegate = edgetpu_create_delegate(device.type, device.path, nullptr, 0);
-            context->interpreter->ModifyGraphWithDelegate(std::unique_ptr<TfLiteDelegate, decltype(&edgetpu_free_delegate)>(delegate, &edgetpu_free_delegate));
-        }
-        return true;
+        context->accelerationBackend.reset(new EdgetpuAccelerationBackend());
     }
 #endif
-    return false;
+
+#ifdef RUNECORAL_GPU_BACKEND
+    if (backend & RuneCoralAccelerationBackend__Gpu) {
+        context->accelerationBackend.reset(new GpuAccelerationBackend());
+    }
+#endif
+
+    return backend == RuneCoralAccelerationBackend__None
+           || (context->accelerationBackend && context->accelerationBackend->accelerate(context->interpreter.get()));
 }
 
 RuneCoralLoadResult create_inference_context(const char *mimetype, const void *model, size_t model_len,
@@ -126,7 +107,10 @@ RuneCoralLoadResult create_inference_context(const char *mimetype, const void *m
                 LOG_E("Interpreter unable to allocate tensors");
                 result = RuneCoralLoadResult__InternalError;
             } else {
-                accelerateInterpreter(backend, context);
+                if (!accelerateInterpreter(backend, context)) {
+                    LOG_E("Unable to accelerate interpreter");
+                }
+
                 if (context->interpreter->inputs().size() != num_inputs || context->interpreter->outputs().size() != num_outputs) {
                     LOG_E("Interpreter inputs/outputs do not match the number of inputs/outputs passed");
                     result = RuneCoralLoadResult__IncorrectArgumentSizes;
