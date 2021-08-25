@@ -13,7 +13,7 @@
 
 class AccelerationBackend {
 public:
-    virtual ~AccelerationBackend();
+    virtual ~AccelerationBackend() = default;
     virtual bool isAvailable() const {
         return true;
     }

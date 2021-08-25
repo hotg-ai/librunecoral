@@ -2,9 +2,12 @@ cmake_minimum_required(VERSION 3.5)
 project(runecoralexample)
 
 set(LIBRUNECORAL_DIR ${CMAKE_SOURCE_DIR}/third_party/librunecoral)
+set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake/modules/" ${CMAKE_MODULE_PATH})
 include(cmake/EmbedResources.cmake)
 
 find_package(Threads REQUIRED)
+find_package(EGL REQUIRED)
+find_package(OpenGLES3 REQUIRED)
 
 if(NOT EXISTS "${CMAKE_BINARY_DIR}/sinemodel.h" OR "sinemodel.tflite" IS_NEWER_THAN "${CMAKE_BINARY_DIR}/sinemodel.h")
     embed_resources("${CMAKE_BINARY_DIR}/sinemodel.h"
@@ -22,6 +25,12 @@ else()
 endif()
 
 target_include_directories(${PROJECT_NAME} PRIVATE ${LIBRUNECORAL_DIR}/include ${CMAKE_BINARY_DIR})
-target_link_libraries(${PROJECT_NAME} PRIVATE -L${LIBRUNECORAL_LIB_DIR} -lrunecoral Threads::Threads ${CMAKE_DL_LIBS})
+target_link_libraries(${PROJECT_NAME} PRIVATE
+                        -L${LIBRUNECORAL_LIB_DIR}
+                        -lrunecoral
+                        Threads::Threads
+                        ${CMAKE_DL_LIBS}
+                        EGL::EGL
+                        OpenGLES3::OpenGLES3)
 
 install(TARGETS ${PROJECT_NAME} DESTINATION ${CMAKE_INSTALL_PREFIX}/)

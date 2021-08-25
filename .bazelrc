@@ -5,10 +5,12 @@ common --experimental_repo_remote_exec
 
 # Basic build settings
 build --jobs 128
-build --define='absl=1'  # for gtest
+#build --define='absl=1'  # for gtest
 build --enable_platform_specific_config
 build --force_pic
 build --define darwinn_portable=1
+build --verbose_failures
+build --sandbox_debug
 
 # Enable stack traces
 test --test_env="GTEST_INSTALL_FAILURE_SIGNAL_HANDLER=1"
@@ -19,9 +21,16 @@ build:linux --host_cxxopt=-std=c++17
 build:linux --copt=-w
 build:linux --crosstool_top=@crosstool//:toolchains
 
+# This needs to be added because of https://github.com/google/mediapipe/issues/305
+build:linux --copt=-DEGL_NO_X11
+
+build:linux_x86_64 --config=linux
+build:linux_x86_64 --cpu=k8
+
 build:linux_arm --config=linux
 build:linux_arm --copt=-ffp-contract=off
 build:linux_arm --cpu=armv7a
+
 
 build:linux_arm64 --config=linux
 build:linux_arm64 --copt=-ffp-contract=off
