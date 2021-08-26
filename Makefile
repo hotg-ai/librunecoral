@@ -1,5 +1,6 @@
 SHELL := /bin/bash
 MAKEFILE_DIR := $(realpath $(dir $(lastword $(MAKEFILE_LIST))))
+PREFIX ?= $(MAKEFILE_DIR)
 
 DOCKER_IMAGE_LINUX := tinyverseml/runecoral-cross-linux
 DOCKER_IMAGE_ANDROID := tinyverseml/runecoral-cross-android
@@ -42,18 +43,18 @@ all: dist
 dist: runecoral_header librunecoral-linux librunecoral-android
 
 runecoral_header: runecoral/runecoral.h
-	mkdir -p $(MAKEFILE_DIR)/dist/include
+	mkdir -p $(PREFIX)/dist/include
 	install runecoral/runecoral.h $(MAKEFILE_DIR)/dist/include
 
 librunecoral-linux-%: runecoral/runecoral.h runecoral/runecoral.cpp runecoral/private/accelerationbackends.h runecoral/private/utils.h
 	$(DOCKER_RUN) $(DOCKER_IMAGE_LINUX) bazel build -c $(COMPILATION_MODE) $(BAZEL_BUILD_FLAGS) --config=linux_$* //runecoral:runecoral
-	mkdir -p dist/lib/linux/$*/
-	install bazel-bin/runecoral/librunecoral.a dist/lib/linux/$*
+	mkdir -p $(PREFIX)/dist/lib/linux/$*/
+	install bazel-bin/runecoral/librunecoral.a $(PREFIX)/dist/lib/linux/$*
 
 librunecoral-android-%: runecoral/runecoral.h runecoral/runecoral.cpp runecoral/private/accelerationbackends.h runecoral/private/utils.h
 	$(DOCKER_RUN) $(DOCKER_IMAGE_ANDROID) bazel build -c $(COMPILATION_MODE) $(BAZEL_BUILD_FLAGS) --config=android_$* //runecoral:runecoral
-	mkdir -p dist/lib/android/$*/ ;
-	install bazel-bin/runecoral/librunecoral.a dist/lib/android/$*
+	mkdir -p $(PREFIX)/dist/lib/android/$*/ ;
+	install bazel-bin/runecoral/librunecoral.a $(PREFIX)/dist/lib/android/$*
 
 librunecoral-linux: librunecoral-linux-arm librunecoral-linux-arm64 librunecoral-linux-x86_64
 librunecoral-android: librunecoral-android-arm librunecoral-android-arm64 librunecoral-android-x86

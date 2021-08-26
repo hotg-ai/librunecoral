@@ -18,6 +18,7 @@ fn target_arch() -> String {
 
 fn librunecoral_path() -> PathBuf  {
     project_root()
+        .join(std::env::var("OUT_DIR").unwrap())
         .join("dist")
         .join("lib")
         .join(std::env::var("CARGO_CFG_TARGET_OS").unwrap())
@@ -29,7 +30,9 @@ fn make_librunecoral(target_os: &str) {
     let mut cmd = Command::new("make");
 
     cmd.current_dir(project_root());
-    cmd.arg(format!("librunecoral-{}-{}", target_os, target_arch()));
+    cmd.arg(format!("librunecoral-{}-{}", target_os, target_arch()))
+       .arg(format!("PREFIX={}", std::env::var("OUT_DIR").unwrap()));
+
     if cfg!(feature = "edgetpu_acceleration") {
         cmd.arg("EDGETPU_ACCELERATION=true");
     }
