@@ -2,8 +2,8 @@ SHELL := /bin/bash
 MAKEFILE_DIR := $(realpath $(dir $(lastword $(MAKEFILE_LIST))))
 PREFIX ?= $(MAKEFILE_DIR)
 
-DOCKER_IMAGE_LINUX := tinyverseml/runecoral-cross-linux
-DOCKER_IMAGE_ANDROID := tinyverseml/runecoral-cross-android
+DOCKER_IMAGE_LINUX := docker.pkg.github.com/hotg-ai/librunecoral/runecoral-cross-linux
+DOCKER_IMAGE_ANDROID := docker.pkg.github.com/hotg-ai/librunecoral/runecoral-cross-android
 DOCKER_RUN := docker run --rm -v "`pwd`":"`pwd`" \
            -v $$HOME:$$HOME \
            -v /etc/group:/etc/group:ro \
