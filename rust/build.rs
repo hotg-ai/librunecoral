@@ -67,7 +67,7 @@ fn main() {
 
     println!("cargo:rustc-link-search={}", project_root().join(librunecoral_path()).display().to_string());
     println!("cargo:rustc-link-lib=runecoral");
-    println!("cargo:rustc-flags=-l dylib=stdc++");
+    println!("cargo:rustc-flags=-l dylib=stdc++ -lEGL -lGLESv2");
 
     let bindings = Builder::default()
         .header(header_file.display().to_string())

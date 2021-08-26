@@ -5,6 +5,7 @@ use std::{
     fmt::{self, Debug, Formatter},
     ptr::{self, NonNull},
 };
+use bitflags::bitflags;
 
 /// A backend which can run inference on a model.
 pub struct InferenceContext {
@@ -75,7 +76,7 @@ impl InferenceContext {
                 inputs.len() as ffi::size_t,
                 outputs.as_ptr(),
                 outputs.len() as ffi::size_t,
-                acceleration_backend as u32,
+                acceleration_backend.bits(),
                 inference_context.as_mut_ptr(),
             );
 
@@ -86,6 +87,12 @@ impl InferenceContext {
             Ok(InferenceContext::new(
                 NonNull::new(inference_context).expect("Should be initialized")
             ))
+        }
+    }
+
+    pub fn available_acceleration_backends () -> AccelerationBackend {
+        unsafe {
+            AccelerationBackend::from_bits(ffi::availableAccelerationBackends() as u32).unwrap()
         }
     }
 }
@@ -185,11 +192,12 @@ pub enum InferError {
     },
 }
 
-#[repr(u32)]
-pub enum AccelerationBackend {
-    None = ffi::RuneCoralAccelerationBackend__None,
-    Libedgetpu = ffi::RuneCoralAccelerationBackend__Libedgetpu,
-    Gpu = ffi::RuneCoralAccelerationBackend__Gpu
+bitflags! {
+    pub struct AccelerationBackend: u32 {
+        const NONE = ffi::RuneCoralAccelerationBackend__None;
+        const LIBEDGETPU = ffi::RuneCoralAccelerationBackend__Libedgetpu;
+        const GPU = ffi::RuneCoralAccelerationBackend__Gpu;
+    }
 }
 
 #[cfg(test)]

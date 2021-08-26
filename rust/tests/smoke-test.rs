@@ -1,4 +1,4 @@
-use hotg_runecoral::{ElementType, Error, LoadError, Tensor, TensorDescriptor, TensorMut};
+use hotg_runecoral::{AccelerationBackend, ElementType, Error, InferenceContext, LoadError, Tensor, TensorDescriptor, TensorMut};
 use std::{
     borrow::Cow,
     ffi::CStr
@@ -21,7 +21,7 @@ fn mimetype() -> &'static str {
 fn create_inference_context_with_invalid_model() {
     let model = b"this is not a valid model";
 
-    let _ = hotg_runecoral::InferenceContext::create_context(mimetype(), model, &[], &[], hotg_runecoral::AccelerationBackend::None)
+    let _ = hotg_runecoral::InferenceContext::create_context(mimetype(), model, &[], &[], hotg_runecoral::AccelerationBackend::NONE)
         .unwrap();
 }
 
@@ -29,7 +29,7 @@ fn create_inference_context_with_invalid_model() {
 fn create_inference_context_with_incorrect_number_of_tensors() {
     let model = include_bytes!("sinemodel.tflite");
 
-    let err = hotg_runecoral::InferenceContext::create_context(mimetype(), model, &[], &[], hotg_runecoral::AccelerationBackend::None)
+    let err = hotg_runecoral::InferenceContext::create_context(mimetype(), model, &[], &[], hotg_runecoral::AccelerationBackend::NONE)
         .unwrap_err();
 
     assert_eq!(err, Error::Load(LoadError::IncorrectArgumentSizes));
@@ -43,7 +43,7 @@ fn run_inference_using_the_sine_model() {
         shape: Cow::Borrowed(&[1, 1]),
     }];
 
-    let mut ctx = hotg_runecoral::InferenceContext::create_context(mimetype(), model, &descriptors, &descriptors, hotg_runecoral::AccelerationBackend::None)
+    let mut ctx = hotg_runecoral::InferenceContext::create_context(mimetype(), model, &descriptors, &descriptors, hotg_runecoral::AccelerationBackend::NONE)
         .unwrap();
 
     let input = [0.5_f32];
@@ -60,4 +60,11 @@ fn run_inference_using_the_sine_model() {
 
 fn round(n: f32) -> f32 {
     (n * 10000.0).round() / 10000.0
+}
+
+#[test]
+fn query_available_hardware_backends() {
+    let backends = InferenceContext::available_acceleration_backends();
+    assert_eq!((backends & hotg_runecoral::AccelerationBackend::LIBEDGETPU), AccelerationBackend::NONE);
+    assert_eq!((backends & hotg_runecoral::AccelerationBackend::GPU), AccelerationBackend::GPU);
 }
