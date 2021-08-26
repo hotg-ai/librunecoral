@@ -24,6 +24,7 @@
 //!     model,
 //!     &[input_tensor.descriptor()],
 //!     &[output_tensor.descriptor()],
+//!     AccelerationBackend::None,
 //! )?;
 //!
 //! // Now we can run inference
@@ -40,7 +41,7 @@ pub mod ffi;
 mod tensors;
 
 pub use crate::{
-    context::{InferenceContext, LoadError},
+    context::{InferenceContext, LoadError, AccelerationBackend},
     tensors::{ElementType, Tensor, TensorDescriptor, TensorElement, TensorMut},
 };
 

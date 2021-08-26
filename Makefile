@@ -27,7 +27,7 @@ runecoral_header: runecoral/runecoral.h
 	install runecoral/runecoral.h $(MAKEFILE_DIR)/dist/include
 
 librunecoral-linux-%: runecoral/runecoral.h runecoral/runecoral.cpp runecoral/private/accelerationbackends.h runecoral/private/utils.h
-	docker run --rm -it -v "`pwd`":"`pwd`" \
+	docker run --rm -v "`pwd`":"`pwd`" \
            -v $$HOME:$$HOME \
 		   -v /etc/group:/etc/group:ro \
            -v /etc/passwd:/etc/passwd:ro \
@@ -42,7 +42,7 @@ librunecoral-linux-%: runecoral/runecoral.h runecoral/runecoral.cpp runecoral/pr
 	install bazel-bin/runecoral/librunecoral.a dist/lib/linux/$*
 
 librunecoral-android-%: runecoral/runecoral.h runecoral/runecoral.cpp runecoral/private/accelerationbackends.h runecoral/private/utils.h
-	docker run --rm -it -v "`pwd`":"`pwd`" \
+	docker run --rm -v "`pwd`":"`pwd`" \
            -v $$HOME:$$HOME \
 		   -v /etc/group:/etc/group:ro \
            -v /etc/passwd:/etc/passwd:ro \

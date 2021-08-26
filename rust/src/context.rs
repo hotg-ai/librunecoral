@@ -54,6 +54,7 @@ impl InferenceContext {
         model: &[u8],
         inputs: &[TensorDescriptor<'_>],
         outputs: &[TensorDescriptor<'_>],
+        acceleration_backend: AccelerationBackend
     ) -> Result<InferenceContext, Error> {
         let mimetype = CString::new(mimetype)?;
         let mut inference_context = MaybeUninit::uninit();
@@ -74,6 +75,7 @@ impl InferenceContext {
                 inputs.len() as ffi::size_t,
                 outputs.as_ptr(),
                 outputs.len() as ffi::size_t,
+                acceleration_backend as u32,
                 inference_context.as_mut_ptr(),
             );
 
@@ -181,6 +183,13 @@ pub enum InferError {
     Other {
         return_code: ffi::RuneCoralInferenceResult,
     },
+}
+
+#[repr(u32)]
+pub enum AccelerationBackend {
+    None = ffi::RuneCoralAccelerationBackend__None,
+    Libedgetpu = ffi::RuneCoralAccelerationBackend__Libedgetpu,
+    Gpu = ffi::RuneCoralAccelerationBackend__Gpu
 }
 
 #[cfg(test)]
