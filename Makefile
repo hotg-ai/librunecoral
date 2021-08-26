@@ -4,6 +4,15 @@ OS := $(shell uname -s)
 DOCKER_IMAGE_LINUX := tinyverseml/runecoral-cross-linux
 DOCKER_IMAGE_ANDROID := tinyverseml/runecoral-cross-android
 
+DOCKER_RUN := docker run --rm -v "`pwd`":"`pwd`" \
+           -v $$HOME:$$HOME \
+           -v /etc/group:/etc/group:ro \
+           -v /etc/passwd:/etc/passwd:ro \
+           -v /etc/localtime:/etc/localtime:ro \
+           -u `id -u $$USER`:`id -g $$USER` \
+           -e HOME=$$HOME \
+           -e USER=$$USER \
+           -w "`pwd`"
 # Allowed COMPILATION_MODE values: opt, dbg, fastbuild
 COMPILATION_MODE ?= opt
 ifeq ($(filter $(COMPILATION_MODE),opt dbg fastbuild),)
@@ -27,32 +36,12 @@ runecoral_header: runecoral/runecoral.h
 	install runecoral/runecoral.h $(MAKEFILE_DIR)/dist/include
 
 librunecoral-linux-%: runecoral/runecoral.h runecoral/runecoral.cpp runecoral/private/accelerationbackends.h runecoral/private/utils.h
-	docker run --rm -v "`pwd`":"`pwd`" \
-           -v $$HOME:$$HOME \
-		   -v /etc/group:/etc/group:ro \
-           -v /etc/passwd:/etc/passwd:ro \
-           -v /etc/localtime:/etc/localtime:ro \
-           -u `id -u $$USER`:`id -g $$USER` \
-           -e HOME=$$HOME \
-           -e USER=$$USER \
-           -w "`pwd`" \
-			$(DOCKER_IMAGE_LINUX) \
-			bazel build -c $(COMPILATION_MODE) $(BAZEL_BUILD_FLAGS) --config=linux_$* //runecoral:runecoral
+	$(DOCKER_RUN) $(DOCKER_IMAGE_LINUX) bazel build -c $(COMPILATION_MODE) $(BAZEL_BUILD_FLAGS) --config=linux_$* //runecoral:runecoral
 	mkdir -p dist/lib/linux/$*/
 	install bazel-bin/runecoral/librunecoral.a dist/lib/linux/$*
 
 librunecoral-android-%: runecoral/runecoral.h runecoral/runecoral.cpp runecoral/private/accelerationbackends.h runecoral/private/utils.h
-	docker run --rm -v "`pwd`":"`pwd`" \
-           -v $$HOME:$$HOME \
-		   -v /etc/group:/etc/group:ro \
-           -v /etc/passwd:/etc/passwd:ro \
-           -v /etc/localtime:/etc/localtime:ro \
-           -u `id -u $$USER`:`id -g $$USER` \
-           -e HOME=$$HOME \
-           -e USER=$$USER \
-           -w "`pwd`" \
-			$(DOCKER_IMAGE_ANDROID) \
-			bazel build -c $(COMPILATION_MODE) $(BAZEL_BUILD_FLAGS) --config=android_$* //runecoral:runecoral
+	$(DOCKER_RUN) $(DOCKER_IMAGE_ANDROID) bazel build -c $(COMPILATION_MODE) $(BAZEL_BUILD_FLAGS) --config=android_$* //runecoral:runecoral
 	mkdir -p dist/lib/android/$*/ ;
 	install bazel-bin/runecoral/librunecoral.a dist/lib/android/$*
 
