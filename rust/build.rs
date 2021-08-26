@@ -73,15 +73,13 @@ fn main() {
         _ => panic!("Target OS not supported!")
     };
 
-    let mut additional_rustcflags = String::from("");
-
-    if cfg!(feature = "gpu_acceleration") {
-        additional_rustcflags.push_str("-lEGL -lGLESv2");
-    }
-
     println!("cargo:rustc-link-search={}", project_root().join(librunecoral_path()).display().to_string());
     println!("cargo:rustc-link-lib=runecoral");
-    println!("cargo:rustc-flags=-l dylib=stdc++ {}", additional_rustcflags);
+    if cfg!(feature = "gpu_acceleration") {
+        println!("cargo:rustc-link-lib=EGL");
+        println!("cargo:rustc-link-lib=GLESv2");
+    }
+    println!("cargo:rustc-flags=-l dylib=stdc++");
 
     let bindings = Builder::default()
         .header(header_file.display().to_string())
