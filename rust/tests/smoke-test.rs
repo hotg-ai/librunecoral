@@ -65,6 +65,6 @@ fn round(n: f32) -> f32 {
 #[test]
 fn query_available_hardware_backends() {
     let backends = InferenceContext::available_acceleration_backends();
-    assert_eq!((backends & hotg_runecoral::AccelerationBackend::LIBEDGETPU), AccelerationBackend::NONE);
-    assert_eq!((backends & hotg_runecoral::AccelerationBackend::GPU), AccelerationBackend::GPU);
+    assert_eq!((backends & hotg_runecoral::AccelerationBackend::EDGETPU), AccelerationBackend::NONE);
+    assert_eq!((backends & hotg_runecoral::AccelerationBackend::GPU), AccelerationBackend::NONE);
 }

@@ -3,11 +3,11 @@
 #include "utils.h"
 #include "tensorflow/lite/interpreter.h"
 
-#ifdef RUNECORAL_EDGETPU_BACKEND
+#ifdef RUNECORAL_EDGETPU_ACCELERATION
 #include "tflite/public/edgetpu_c.h"
 #endif
 
-#ifdef RUNECORAL_GPU_BACKEND
+#ifdef RUNECORAL_GPU_ACCELERATION
 #include "tensorflow/lite/delegates/gpu/delegate.h"
 #endif
 
@@ -20,7 +20,7 @@ public:
     virtual bool accelerate(tflite::Interpreter *interpreter) = 0;
 };
 
-#ifdef RUNECORAL_EDGETPU_BACKEND
+#ifdef RUNECORAL_EDGETPU_ACCELERATION
 class EdgetpuAccelerationBackend: public AccelerationBackend {
     size_t mEdgetpuDeviceCount = 0;
     struct edgetpu_device* mEdgetpuDevices = nullptr;
@@ -56,7 +56,7 @@ public:
 #endif
 
 
-#ifdef RUNECORAL_GPU_BACKEND
+#ifdef RUNECORAL_GPU_ACCELERATION
 class GpuAccelerationBackend: public AccelerationBackend {
     struct TfLiteDelegate* mGpuDelegate = nullptr;
 public:

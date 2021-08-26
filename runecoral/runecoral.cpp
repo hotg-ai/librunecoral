@@ -46,14 +46,14 @@ struct RuneCoralContext {
 int availableAccelerationBackends() {
     int result = RuneCoralAccelerationBackend__None;
     //TODO : Add Runtime checks to this too
-#ifdef RUNECORAL_EDGETPU_BACKEND
+#ifdef RUNECORAL_EDGETPU_ACCELERATION
     EdgetpuAccelerationBackend edgeTpuBackend;
     if (edgeTpuBackend.isAvailable()) {
-        result |= RuneCoralAccelerationBackend__Libedgetpu;
+        result |= RuneCoralAccelerationBackend__Edgetpu;
     }
 #endif
 
-#ifdef RUNECORAL_GPU_BACKEND
+#ifdef RUNECORAL_GPU_ACCELERATION
     result |= RuneCoralAccelerationBackend__Gpu;
 #endif
 
@@ -61,13 +61,13 @@ int availableAccelerationBackends() {
 }
 
 bool accelerateInterpreter(const RuneCoralAccelerationBackend backend, RuneCoralContext *context) {
-#ifdef RUNECORAL_EDGETPU_BACKEND
-    if (backend & RuneCoralAccelerationBackend__Libedgetpu) {
+#ifdef RUNECORAL_EDGETPU_ACCELERATION
+    if (backend & RuneCoralAccelerationBackend__Edgetpu) {
         context->accelerationBackend.reset(new EdgetpuAccelerationBackend());
     }
 #endif
 
-#ifdef RUNECORAL_GPU_BACKEND
+#ifdef RUNECORAL_GPU_ACCELERATION
     if (backend & RuneCoralAccelerationBackend__Gpu) {
         context->accelerationBackend.reset(new GpuAccelerationBackend());
     }

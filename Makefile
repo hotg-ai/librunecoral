@@ -1,9 +1,8 @@
 SHELL := /bin/bash
 MAKEFILE_DIR := $(realpath $(dir $(lastword $(MAKEFILE_LIST))))
-OS := $(shell uname -s)
+
 DOCKER_IMAGE_LINUX := tinyverseml/runecoral-cross-linux
 DOCKER_IMAGE_ANDROID := tinyverseml/runecoral-cross-android
-
 DOCKER_RUN := docker run --rm -v "`pwd`":"`pwd`" \
            -v $$HOME:$$HOME \
            -v /etc/group:/etc/group:ro \
@@ -21,6 +20,17 @@ endif
 
 ifeq ($(COMPILATION_MODE), opt)
 BAZEL_BUILD_FLAGS += --linkopt=-Wl,--strip-all
+endif
+
+EDGETPU_ACCELERATION ?= false
+GPU_ACCELERATION ?= false
+
+ifeq ($(EDGETPU_ACCELERATION), true)
+BAZEL_BUILD_FLAGS += --define edgetpu_acceleration=true
+endif
+
+ifeq ($(GPU_ACCELERATION), true)
+BAZEL_BUILD_FLAGS += --define gpu_acceleration=true
 endif
 
 .PHONY: all \

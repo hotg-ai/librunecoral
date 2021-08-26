@@ -49,7 +49,7 @@ typedef enum {
 
 typedef enum {
   RuneCoralAccelerationBackend__None = 0,
-  RuneCoralAccelerationBackend__Libedgetpu = 1,
+  RuneCoralAccelerationBackend__Edgetpu = 1,
   RuneCoralAccelerationBackend__Gpu = 2
 } RuneCoralAccelerationBackend;
 

@@ -195,7 +195,7 @@ pub enum InferError {
 bitflags! {
     pub struct AccelerationBackend: u32 {
         const NONE = ffi::RuneCoralAccelerationBackend__None;
-        const LIBEDGETPU = ffi::RuneCoralAccelerationBackend__Libedgetpu;
+        const EDGETPU = ffi::RuneCoralAccelerationBackend__Edgetpu;
         const GPU = ffi::RuneCoralAccelerationBackend__Gpu;
     }
 }
