@@ -11,8 +11,9 @@ on:
 jobs:
   build:
     runs-on: ubuntu-18.04
-    container:
-      image: tinyverseml/runecoral-cross-debian-stretch
+    strategy:
+      matrix:
+        target: [linux, android]
 
     steps:
       - uses: actions/checkout@v1
@@ -22,28 +23,17 @@ jobs:
       - name: Cache build dependencies
         uses: actions/cache@v2
         with:
-          key: ${{ runner.os }}-${{ github.workflow }}-${{ github.job }}
+          key: ${{ runner.os }}-${{ github.workflow }}-${{ github.job }}-${{ matrix.target }}
           path: |
             ~/.cache
 
       - name: Build packages
         run: |
-            make
-            CPU=armv7a make
-            CPU=aarch64 make
-
-      - name: Test example
-        run: |
-            cd example
-            mkdir -p build
-            cd build
-            cmake ..
-            make
-            ./runecoralexample
+            make librunecoral-${{ matrix.target }}
 
       - uses: actions/upload-artifact@v2
         with:
-          name: ${{ github.run_id }}-librunecoral-artifacts-linux
+          name: ${{ github.run_id }}-librunecoral-artifacts-${{ matrix.target }}
           path: dist/
 
   rust:
