@@ -36,7 +36,7 @@ jobs:
 
       - name: Build packages
         run: |
-            make librunecoral-${{ matrix.target }}
+            make librunecoral-${{ matrix.target }} EDGETPU_ACCELERATION=true GPU_ACCELERATION=true
 
       - uses: actions/upload-artifact@v2
         with:
