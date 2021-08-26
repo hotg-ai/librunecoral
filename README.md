@@ -18,46 +18,25 @@ $ git submodule update --init --recursive
 
 #### Build the docker container
 ```bash
-$ make docker-image
+$ make docker-image-linux
 $ docker image ls
 REPOSITORY                      TAG     IMAGE ID       CREATED         SIZE
-runecoral-cross-debian-stretch     latest  b431b6fa5895   7 hours ago     2.94GB
+docker.pkg.github.com/hotg-ai/librunecoral/runecoral-cross-linux     latest  b431b6fa5895   7 hours ago     2.94GB
 
 ```
 
-### Enter the docker container to do the build
+### Build the package
 ```bash
-$ docker run --rm -it -v $PWD:$PWD \
-               -v $HOME:$HOME \
-               -v /etc/group:/etc/group:ro \
-               -v /etc/passwd:/etc/passwd:ro \
-               -v /etc/localtime:/etc/localtime:ro \
-               -u $(id -u ${USER}):$(id -g ${USER}) \
-               -e HOME=$HOME \
-               -e USER=$USER \
-               tinyverseml/runecoral-cross-debian-stretch
-user@39b50cb9fe24:/src/librunecoral$ CPU=aarch64 make
-user@39b50cb9fe24:/src/librunecoral$ ls dist/include
+$ make librunecoral-linux-aarch64
+$ ls dist/include
 runecoral.h
-user@39b50cb9fe24:/src/librunecoral$ ls dist/lib/linux/aarch64
+$ ls dist/lib/linux/aarch64
 librunecoral.so
-```
 
-Or use this one-liner:
-
-```
-$ docker run --rm -it -v $PWD:$PWD \
-               -v $HOME:$HOME \
-               -v /etc/group:/etc/group:ro \
-               -v /etc/passwd:/etc/passwd:ro \
-               -v /etc/localtime:/etc/localtime:ro \
-               -u $(id -u ${USER}):$(id -g ${USER}) \
-               -e HOME=$HOME \
-               -e USER=$USER \
-               -e CPU=k8 \
-               --workdir $PWD \
-               tinyverseml/runecoral-cross-debian-stretch \
-               make
+# To build for all supported CPU architectures under linux
+$ make librunecoral-linux
+$ ls dist/lib/linux
+arm  arm64  x86_64
 ```
 
 # Thanks to:
