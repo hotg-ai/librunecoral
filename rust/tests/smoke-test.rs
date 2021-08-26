@@ -1,4 +1,4 @@
-use hotg_runecoral::{AccelerationBackend, ElementType, Error, InferenceContext, LoadError, Tensor, TensorDescriptor, TensorMut};
+use hotg_runecoral::{ElementType, Error, InferenceContext, LoadError, Tensor, TensorDescriptor, TensorMut};
 use std::{
     borrow::Cow,
     ffi::CStr
@@ -65,6 +65,8 @@ fn round(n: f32) -> f32 {
 #[test]
 fn query_available_hardware_backends() {
     let backends = InferenceContext::available_acceleration_backends();
-    assert_eq!((backends & hotg_runecoral::AccelerationBackend::EDGETPU), AccelerationBackend::NONE);
-    assert_eq!((backends & hotg_runecoral::AccelerationBackend::GPU), AccelerationBackend::NONE);
+    println!("test query_available_hardware_backends: supports edgetpu acceleration: {}",
+                (backends & hotg_runecoral::AccelerationBackend::EDGETPU == hotg_runecoral::AccelerationBackend::EDGETPU));
+    println!("test query_available_hardware_backends: supports gpu acceleration: {}",
+                (backends & hotg_runecoral::AccelerationBackend::GPU == hotg_runecoral::AccelerationBackend::GPU));
 }
