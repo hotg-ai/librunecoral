@@ -1,79 +1,69 @@
 SHELL := /bin/bash
 MAKEFILE_DIR := $(realpath $(dir $(lastword $(MAKEFILE_LIST))))
-OS := $(shell uname -s)
-DOCKER_IMAGE := tinyverseml/runecoral-cross-debian-stretch
+PREFIX ?= $(MAKEFILE_DIR)
 
-# Allowed CPU values: k8, armv7a, aarch64, darwin
-ifeq ($(OS),Linux)
-CPU ?= k8
-else ifeq ($(OS),Darwin)
-CPU ?= darwin
-else
-$(error $(OS) is not supported)
-endif
-ifeq ($(filter $(CPU),k8 armv7a aarch64 darwin),)
-$(error CPU must be k8, armv7a, aarch64, or darwin)
-endif
-
+DOCKER_IMAGE_LINUX := docker.pkg.github.com/hotg-ai/librunecoral/runecoral-cross-linux
+DOCKER_IMAGE_ANDROID := docker.pkg.github.com/hotg-ai/librunecoral/runecoral-cross-android
+DOCKER_RUN := docker run --rm -v "`pwd`":"`pwd`" \
+           -v $$HOME:$$HOME \
+           -v /etc/group:/etc/group:ro \
+           -v /etc/passwd:/etc/passwd:ro \
+           -v /etc/localtime:/etc/localtime:ro \
+           -u `id -u $$USER`:`id -g $$USER` \
+           -e HOME=$$HOME \
+           -e USER=$$USER \
+           -w "`pwd`"
 # Allowed COMPILATION_MODE values: opt, dbg, fastbuild
 COMPILATION_MODE ?= opt
 ifeq ($(filter $(COMPILATION_MODE),opt dbg fastbuild),)
 $(error COMPILATION_MODE must be opt, dbg or fastbuild)
 endif
 
-BAZEL_OUT_DIR :=  $(MAKEFILE_DIR)/bazel-out/$(CPU)-$(COMPILATION_MODE)/bin
-COMMON_BAZEL_BUILD_FLAGS_Linux := --crosstool_top=@crosstool//:toolchains \
-                                  --compiler=gcc
-COMMON_BAZEL_BUILD_FLAGS_Darwin :=
-COMMON_BAZEL_BUILD_FLAGS := --compilation_mode=$(COMPILATION_MODE) \
-                            --verbose_failures \
-                            --sandbox_debug \
-                            --subcommands \
-                            --define darwinn_portable=1 \
-                            --cpu=$(CPU) \
-                            --experimental_repo_remote_exec \
-                            --force_pic \
-                            $(COMMON_BAZEL_BUILD_FLAGS_$(OS))
-
 ifeq ($(COMPILATION_MODE), opt)
-BAZEL_BUILD_FLAGS_Linux += --linkopt=-Wl,--strip-all
+BAZEL_BUILD_FLAGS += --linkopt=-Wl,--strip-all
 endif
 
+EDGETPU_ACCELERATION ?= false
+GPU_ACCELERATION ?= false
 
-ifeq ($(CPU),k8)
-RUNE_CORAL_DIST_DIR := $(MAKEFILE_DIR)/dist/lib/linux/x86_64
-else ifeq ($(CPU),aarch64)
-BAZEL_BUILD_FLAGS_Linux += --copt=-ffp-contract=off
-RUNE_CORAL_DIST_DIR := $(MAKEFILE_DIR)/dist/lib/linux/aarch64
-else ifeq ($(CPU),armv7a)
-BAZEL_BUILD_FLAGS_Linux += --copt=-ffp-contract=off
-RUNE_CORAL_DIST_DIR := $(MAKEFILE_DIR)/dist/lib/linux/armv7l
-else ifeq ($(CPU), darwin)
-RUNE_CORAL_DIST_DIR := $(MAKEFILE_DIR)/dist/lib/darwin
+ifeq ($(EDGETPU_ACCELERATION), true)
+BAZEL_BUILD_FLAGS += --define edgetpu_acceleration=true
 endif
 
-BAZEL_BUILD_FLAGS := $(COMMON_BAZEL_BUILD_FLAGS) \
-                     $(BAZEL_BUILD_FLAGS_$(OS))
+ifeq ($(GPU_ACCELERATION), true)
+BAZEL_BUILD_FLAGS += --define gpu_acceleration=true
+endif
+
 .PHONY: all \
-        runecoral \
         clean \
         help
 
 all: dist
 
-dist: runecoral_header librunecoral
+dist: runecoral_header librunecoral-linux librunecoral-android
 
 runecoral_header: runecoral/runecoral.h
-	mkdir -p $(MAKEFILE_DIR)/dist/include
+	mkdir -p $(PREFIX)/dist/include
 	install runecoral/runecoral.h $(MAKEFILE_DIR)/dist/include
 
-librunecoral: runecoral/runecoral.cpp
-	bazel build $(BAZEL_BUILD_FLAGS) //runecoral:runecoral
-	mkdir -p $(RUNE_CORAL_DIST_DIR)/
-	install bazel-bin/runecoral/librunecoral.a $(RUNE_CORAL_DIST_DIR)
+librunecoral-linux-%: runecoral/runecoral.h runecoral/runecoral.cpp runecoral/private/accelerationbackends.h runecoral/private/utils.h
+	$(DOCKER_RUN) $(DOCKER_IMAGE_LINUX) bazel build -c $(COMPILATION_MODE) $(BAZEL_BUILD_FLAGS) --config=linux_$* //runecoral:runecoral
+	mkdir -p $(PREFIX)/dist/lib/linux/$*/
+	install bazel-bin/runecoral/librunecoral.a $(PREFIX)/dist/lib/linux/$*
 
-docker-image:
-	docker build $(DOCKER_IMAGE_OPTIONS) -t $(DOCKER_IMAGE) $(MAKEFILE_DIR)/docker
+librunecoral-android-%: runecoral/runecoral.h runecoral/runecoral.cpp runecoral/private/accelerationbackends.h runecoral/private/utils.h
+	$(DOCKER_RUN) $(DOCKER_IMAGE_ANDROID) bazel build -c $(COMPILATION_MODE) $(BAZEL_BUILD_FLAGS) --config=android_$* //runecoral:runecoral
+	mkdir -p $(PREFIX)/dist/lib/android/$*/ ;
+	install bazel-bin/runecoral/librunecoral.a $(PREFIX)/dist/lib/android/$*
+
+librunecoral-linux: librunecoral-linux-arm librunecoral-linux-arm64 librunecoral-linux-x86_64
+librunecoral-android: librunecoral-android-arm librunecoral-android-arm64 librunecoral-android-x86
+
+docker-image-linux:
+	docker build $(DOCKER_IMAGE_OPTIONS) -t $(DOCKER_IMAGE_LINUX) -f $(MAKEFILE_DIR)/docker/Dockerfile.Linux $(MAKEFILE_DIR)/docker
+
+docker-image-android:
+	docker build $(DOCKER_IMAGE_OPTIONS) -t $(DOCKER_IMAGE_ANDROID) -f $(MAKEFILE_DIR)/docker/Dockerfile.Android $(MAKEFILE_DIR)/docker
 
 clean:
 	rm -rf $(MAKEFILE_DIR)/bazel-* \
@@ -81,7 +71,7 @@ clean:
 	       $(MAKEFILE_DIR)/dist
 
 help:
-	@echo "make all          - Build all native code"
-	@echo "make runecoral    - Build native code"
-	@echo "make clean        - Remove generated files"
-	@echo "make help         - Print help message"
+	@echo "make all                   - Build all native code"
+	@echo "make librunecoral-linux    - Build native code"
+	@echo "make clean                 - Remove generated files"
+	@echo "make help                  - Print help message"

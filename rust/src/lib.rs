@@ -5,7 +5,7 @@
 //! ```rust,no_run
 //! # fn load_model() -> &'static [u8] { todo!() }
 //! # fn main() -> Result<(), Box<dyn std::error::Error>> {
-//! use hotg_runecoral::{Tensor, TensorMut, InferenceContext};
+//! use hotg_runecoral::{Tensor, TensorMut, InferenceContext, AccelerationBackend};
 //!
 //! // load the model
 //! let model: &[u8] = load_model();
@@ -24,6 +24,7 @@
 //!     model,
 //!     &[input_tensor.descriptor()],
 //!     &[output_tensor.descriptor()],
+//!     AccelerationBackend::NONE,
 //! )?;
 //!
 //! // Now we can run inference
@@ -40,7 +41,7 @@ pub mod ffi;
 mod tensors;
 
 pub use crate::{
-    context::{InferenceContext, LoadError},
+    context::{InferenceContext, LoadError, AccelerationBackend},
     tensors::{ElementType, Tensor, TensorDescriptor, TensorElement, TensorMut},
 };
 

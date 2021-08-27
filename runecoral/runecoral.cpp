@@ -5,20 +5,13 @@ extern "C" {
 #include <cstring>
 #include <vector>
 #include <algorithm>
-#include <iostream>
 
 #include "tensorflow/lite/interpreter.h"
 #include "tensorflow/lite/kernels/register.h"
 #include "tensorflow/lite/model_builder.h"
-#include "tflite/public/edgetpu_c.h"
 
-#ifdef RUNECORAL_ENABLE_LOGGING
-#define LOG_E(x)  {  std::cerr << "[runecoral] " << x << std::endl; }
-#define LOG_D(x)  {  std::cerr << "[runecoral] " << x << std::endl; }
-#else
-#define LOG_E(x)  // nothing
-#define LOG_D(x)  // nothing
-#endif
+#include "private/accelerationbackends.h"
+#include "private/utils.h"
 
 const char* RUNE_CORAL_MIME_TYPE__TFLITE = "application/tflite-model";
 
@@ -47,21 +40,47 @@ struct RuneCoralContext {
     std::unique_ptr<tflite::FlatBufferModel> model;
     tflite::ops::builtin::BuiltinOpResolver resolver;
     std::unique_ptr<tflite::Interpreter> interpreter;
-    size_t edgetpu_device_count = 0;
-    struct edgetpu_device* edgetpu_devices = nullptr;
-
-    ~RuneCoralContext() {
-        LOG_D("Cleaning up Edgetpu context");
-        if (edgetpu_devices) {
-            edgetpu_free_devices(edgetpu_devices);
-            edgetpu_devices = nullptr;
-        }
-    }
+    std::unique_ptr<AccelerationBackend> accelerationBackend;
 };
+
+int availableAccelerationBackends() {
+    int result = RuneCoralAccelerationBackend__None;
+    //TODO : Add Runtime checks to this too
+#ifdef RUNECORAL_EDGETPU_ACCELERATION
+    EdgetpuAccelerationBackend edgeTpuBackend;
+    if (edgeTpuBackend.isAvailable()) {
+        result |= RuneCoralAccelerationBackend__Edgetpu;
+    }
+#endif
+
+#ifdef RUNECORAL_GPU_ACCELERATION
+    result |= RuneCoralAccelerationBackend__Gpu;
+#endif
+
+    return result;
+}
+
+bool accelerateInterpreter(const RuneCoralAccelerationBackend backend, RuneCoralContext *context) {
+#ifdef RUNECORAL_EDGETPU_ACCELERATION
+    if (backend & RuneCoralAccelerationBackend__Edgetpu) {
+        context->accelerationBackend.reset(new EdgetpuAccelerationBackend());
+    }
+#endif
+
+#ifdef RUNECORAL_GPU_ACCELERATION
+    if (backend & RuneCoralAccelerationBackend__Gpu) {
+        context->accelerationBackend.reset(new GpuAccelerationBackend());
+    }
+#endif
+
+    return backend == RuneCoralAccelerationBackend__None
+           || (context->accelerationBackend && context->accelerationBackend->accelerate(context->interpreter.get()));
+}
 
 RuneCoralLoadResult create_inference_context(const char *mimetype, const void *model, size_t model_len,
                                              const RuneCoralTensor *inputs, size_t num_inputs,
                                              const RuneCoralTensor *outputs, size_t num_outputs,
+                                             const RuneCoralAccelerationBackend backend,
                                              RuneCoralContext **inferenceContext) {
     if (strcmp(mimetype, RUNE_CORAL_MIME_TYPE__TFLITE) != 0) {
         LOG_E("Invalid Tensor Mimetype");
@@ -84,17 +103,12 @@ RuneCoralLoadResult create_inference_context(const char *mimetype, const void *m
         tflite::InterpreterBuilder(*(context->model), context->resolver)(&(context->interpreter));
 
         if (context->interpreter) {
-                if (context->interpreter->AllocateTensors() != kTfLiteOk) {
+            if (context->interpreter->AllocateTensors() != kTfLiteOk) {
                 LOG_E("Interpreter unable to allocate tensors");
                 result = RuneCoralLoadResult__InternalError;
             } else {
-                context->edgetpu_devices = edgetpu_list_devices(&(context->edgetpu_device_count));
-
-                if (context->edgetpu_device_count > 0) {
-                    LOG_D("Edgetpu devices found. Trying to Update the interpreter to use the delegate.");
-                    const auto& device = context->edgetpu_devices[0];
-                    TfLiteDelegate* delegate = edgetpu_create_delegate(device.type, device.path, nullptr, 0);
-                    context->interpreter->ModifyGraphWithDelegate(std::unique_ptr<TfLiteDelegate, decltype(&edgetpu_free_delegate)>(delegate, &edgetpu_free_delegate));
+                if (!accelerateInterpreter(backend, context)) {
+                    LOG_E("Unable to accelerate interpreter");
                 }
 
                 if (context->interpreter->inputs().size() != num_inputs || context->interpreter->outputs().size() != num_outputs) {

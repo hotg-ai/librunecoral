@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 ARG IMAGE
-FROM debian:stretch
+FROM ubuntu:bionic
 
 COPY update_sources.sh /
 RUN /update_sources.sh
@@ -40,6 +40,8 @@ RUN apt-get update && apt-get install -y \
   git \
   software-properties-common \
   cmake \
+  libegl1-mesa-dev \
+  libgles2-mesa-dev \
   $(grep Ubuntu /etc/os-release > /dev/null && echo vim-common || echo xxd)
 
 # Bionic Beaver == Ubuntu 18.04

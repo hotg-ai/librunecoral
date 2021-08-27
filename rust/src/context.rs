@@ -5,6 +5,7 @@ use std::{
     fmt::{self, Debug, Formatter},
     ptr::{self, NonNull},
 };
+use bitflags::bitflags;
 
 /// A backend which can run inference on a model.
 pub struct InferenceContext {
@@ -54,6 +55,7 @@ impl InferenceContext {
         model: &[u8],
         inputs: &[TensorDescriptor<'_>],
         outputs: &[TensorDescriptor<'_>],
+        acceleration_backend: AccelerationBackend
     ) -> Result<InferenceContext, Error> {
         let mimetype = CString::new(mimetype)?;
         let mut inference_context = MaybeUninit::uninit();
@@ -74,6 +76,7 @@ impl InferenceContext {
                 inputs.len() as ffi::size_t,
                 outputs.as_ptr(),
                 outputs.len() as ffi::size_t,
+                acceleration_backend.bits(),
                 inference_context.as_mut_ptr(),
             );
 
@@ -84,6 +87,12 @@ impl InferenceContext {
             Ok(InferenceContext::new(
                 NonNull::new(inference_context).expect("Should be initialized")
             ))
+        }
+    }
+
+    pub fn available_acceleration_backends () -> AccelerationBackend {
+        unsafe {
+            AccelerationBackend::from_bits(ffi::availableAccelerationBackends() as u32).unwrap()
         }
     }
 }
@@ -181,6 +190,14 @@ pub enum InferError {
     Other {
         return_code: ffi::RuneCoralInferenceResult,
     },
+}
+
+bitflags! {
+    pub struct AccelerationBackend: u32 {
+        const NONE = ffi::RuneCoralAccelerationBackend__None;
+        const EDGETPU = ffi::RuneCoralAccelerationBackend__Edgetpu;
+        const GPU = ffi::RuneCoralAccelerationBackend__Gpu;
+    }
 }
 
 #[cfg(test)]
