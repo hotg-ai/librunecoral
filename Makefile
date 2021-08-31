@@ -44,7 +44,7 @@ dist: runecoral_header librunecoral-linux librunecoral-android
 
 runecoral_header: runecoral/runecoral.h
 	mkdir -p $(PREFIX)/dist/include
-	install runecoral/runecoral.h $(MAKEFILE_DIR)/dist/include
+	install runecoral/runecoral.h $(PREFIX)/dist/include
 
 librunecoral-linux-%: runecoral/runecoral.h runecoral/runecoral.cpp runecoral/private/accelerationbackends.h runecoral/private/utils.h
 	$(DOCKER_RUN) $(DOCKER_IMAGE_LINUX) bazel build -c $(COMPILATION_MODE) $(BAZEL_BUILD_FLAGS) --config=linux_$* //runecoral:runecoral
