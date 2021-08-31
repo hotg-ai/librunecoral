@@ -1,5 +1,6 @@
 use crate::{ffi, Error, Tensor, TensorMut, TensorDescriptor};
 use std::{
+    convert::TryInto,
     ffi::{CString},
     mem::MaybeUninit,
     fmt::{self, Debug, Formatter},
@@ -76,7 +77,7 @@ impl InferenceContext {
                 inputs.len() as ffi::size_t,
                 outputs.as_ptr(),
                 outputs.len() as ffi::size_t,
-                acceleration_backend.bits() as i32,
+                (acceleration_backend.bits() as i32).try_into().unwrap(),
                 inference_context.as_mut_ptr(),
             );
 
