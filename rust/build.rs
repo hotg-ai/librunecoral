@@ -58,6 +58,11 @@ fn execute_cmd(mut cmd: Command) {
     }
 }
 
+fn make_runecoral_h() {
+    fs::create_dir_all(runecoral_h_path()).unwrap();
+    fs::copy(project_root().join("runecoral").join("runecoral.h"), runecoral_h_path().join("runecoral.h")).ok();
+}
+
 fn make_librunecoral(target_os: &str) {
     // Run the same build command from the README.
     let mut cmd = Command::new("make");
@@ -78,7 +83,6 @@ fn make_librunecoral(target_os: &str) {
 
 fn make_librunecoral_windows() {
     // We are doing the job of make
-    fs::create_dir_all(runecoral_h_path()).unwrap();
     fs::create_dir_all(librunecoral_path()).unwrap();
 
     let mut cmd = Command::new("bazel");
@@ -97,8 +101,6 @@ fn make_librunecoral_windows() {
     cmd.current_dir(project_root());
 
     execute_cmd(cmd);
-
-    fs::copy(project_root().join("runecoral").join("runecoral.h"), runecoral_h_path().join("runecoral.h")).ok();
     fs::copy(project_root().join("bazel-bin").join("runecoral").join("runecoral.lib"), librunecoral_path().join("runecoral.lib")).ok();
 }
 
@@ -112,6 +114,7 @@ fn main() {
         "windows" => make_librunecoral_windows(),
         _ => panic!("Target OS not supported!")
     };
+    make_runecoral_h();
 
     println!("cargo:rustc-link-search={}", project_root().join(librunecoral_path()).display().to_string());
     println!("cargo:rustc-link-lib=runecoral");
