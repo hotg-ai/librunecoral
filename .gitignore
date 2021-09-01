@@ -6,3 +6,4 @@ example/build/*
 .DS_Store
 target/
 Cargo.lock
+.cache
