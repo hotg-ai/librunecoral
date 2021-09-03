@@ -1,0 +1,7 @@
+[build.env]
+passthrough = [
+    "RUNECORAL_DIST_DIR",
+    "RUST_BACKTRACE",
+    "RUST_LOG",
+    "TRAVIS",
+]
