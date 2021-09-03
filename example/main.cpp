@@ -20,7 +20,7 @@ int main(int argc, char* argv[]) {
 
     int backends = availableAccelerationBackends();
 
-    std::cout << "Can use Tpu Backend? " << (backends & RuneCoralAccelerationBackend__Libedgetpu ? "yes" : "no") << std::endl;
+    std::cout << "Can use Tpu Backend? " << (backends & RuneCoralAccelerationBackend__Edgetpu ? "yes" : "no") << std::endl;
     std::cout << "Can use Gpu Backend? " << (backends & RuneCoralAccelerationBackend__Gpu ? "yes" : "no") << std::endl;
 
     auto contextCreationResult = create_inference_context(RUNE_CORAL_MIME_TYPE__TFLITE,

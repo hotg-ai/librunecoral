@@ -7,7 +7,6 @@ common --experimental_repo_remote_exec
 build --jobs 128
 #build --define='absl=1'  # for gtest
 build --enable_platform_specific_config
-build --force_pic
 build --define darwinn_portable=1
 build --verbose_failures
 build --sandbox_debug
