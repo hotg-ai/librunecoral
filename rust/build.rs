@@ -9,6 +9,40 @@ fn project_root() -> PathBuf {
         .to_path_buf()
 }
 
+/**
+dist_dir is a directory containing the installation of librunecoral with a layout like:
+$ tree dist
+dist
+├── include
+│   └── runecoral.h
+└── lib
+    ├── android
+    │   ├── arm
+    │   │   └── librunecoral.a
+    │   ├── arm64
+    │   │   └── librunecoral.a
+    │   └── x86
+    │       └── librunecoral.a
+    └── linux
+        ├── arm
+        │   └── librunecoral.a
+        ├── arm64
+        │   └── librunecoral.a
+        └── x86_64
+            └── librunecoral.a
+
+When this directory is passed as an environment variable, we do not try to build the librunecoral and instead
+use the precompiled libraries from this path.
+*/
+fn dist_dir() -> PathBuf {
+    match std::env::var("RUNECORAL_DIST_DIR") {
+        Ok(dir) => Path::new(&dir).to_path_buf(),
+        _ => project_root().join(std::env::var("OUT_DIR").unwrap())
+            .join("dist")
+            .to_path_buf()
+    }
+}
+
 fn target_arch() -> String {
     match std::env::var("CARGO_CFG_TARGET_ARCH").unwrap().as_ref() {
         "aarch64" => "arm64".to_string(),
@@ -17,19 +51,13 @@ fn target_arch() -> String {
 }
 
 fn librunecoral_path() -> PathBuf  {
-    project_root()
-        .join(std::env::var("OUT_DIR").unwrap())
-        .join("dist")
-        .join("lib")
+    dist_dir().join("lib")
         .join(std::env::var("CARGO_CFG_TARGET_OS").unwrap())
         .join(target_arch())
 }
 
 fn runecoral_h_path() -> PathBuf {
-    project_root()
-    .join(std::env::var("OUT_DIR").unwrap())
-    .join("dist")
-    .join("include")
+    dist_dir().join("include")
 }
 
 fn execute_cmd(mut cmd: Command) {
@@ -111,13 +139,16 @@ fn main() {
     let header_file = runecoral_h_path().join("runecoral.h");
 
     let target_os = std::env::var("CARGO_CFG_TARGET_OS").unwrap();
-    match  target_os.as_str() {
-        "linux" => make_librunecoral(&target_os),
-        "android" => make_librunecoral(&target_os),
-        "windows" => make_librunecoral_windows(),
-        _ => panic!("Target OS not supported!")
-    };
-    make_runecoral_h();
+
+    if std::env::var("RUNECORAL_DIST_DIR").is_err() {
+        match  target_os.as_str() {
+            "linux" => make_librunecoral(&target_os),
+            "android" => make_librunecoral(&target_os),
+            "windows" => make_librunecoral_windows(),
+            _ => panic!("Target OS not supported!")
+        };
+        make_runecoral_h();
+    }
 
     println!("cargo:rustc-link-search={}", project_root().join(librunecoral_path()).display().to_string());
     println!("cargo:rustc-link-lib=runecoral");
