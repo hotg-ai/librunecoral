@@ -159,3 +159,67 @@ jobs:
           bazel shutdown
           wmic process where "name like '%java%'" delete
           wmic process where "name like '%bazel%'" delete
+
+  build_apple:
+    runs-on: macos-latest
+
+    steps:
+      - uses: actions/checkout@v1
+        with:
+          submodules: true
+
+      - name: Cache build dependencies
+        uses: actions/cache@v2
+        with:
+          key: librunecoral-${{ runner.os }}-${{ github.workflow }}-${{ github.job }}-${{ hashFiles('**/Cargo.lock') }}
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+            rust/Cargo.lock
+            .cache
+
+      - uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
+      - uses: actions/setup-python@v2
+        with:
+          python-version: '3.x' # Version range or exact version of a Python version to use, using SemVer's version range syntax
+
+      - name: Install build dependencies
+        run: |
+          pip install numpy
+
+      - name: Build packages
+        run: |
+            make runecoral_header
+            make librunecoral-apple
+
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+
+      - name: Cargo Check
+        uses: actions-rs/cargo@v1
+        env:
+          RUNECORAL_DIST_DIR: "${{ github.workspace }}/dist/"
+        with:
+          command: check
+          args: --manifest-path rust/Cargo.toml
+
+      - name: Cargo Test
+        uses: actions-rs/cargo@v1
+        env:
+          RUNECORAL_DIST_DIR: "${{ github.workspace }}/dist/"
+        with:
+          command: test
+          args: --manifest-path rust/Cargo.toml
+
+      - uses: actions/upload-artifact@v2
+        with:
+          name: ${{ github.run_id }}-librunecoral-artifacts-apple
+          path: dist/

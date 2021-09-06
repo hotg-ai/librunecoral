@@ -7,7 +7,10 @@ def _cc_static_library_impl(ctx):
     for cc_dep in cc_deps:
         for link_input in cc_dep.linking_context.linker_inputs.to_list():
             for library in link_input.libraries:
-                libraries += library.objects
+                if len(library.pic_objects) > 0:
+                    libraries += library.pic_objects
+                else:
+                    libraries += library.objects
 
     cc_toolchain = find_cpp_toolchain(ctx)
     # On Windows: Ugly workaround: https://github.com/bazelbuild/bazel/issues/9209
@@ -27,10 +30,16 @@ def _cc_static_library_impl(ctx):
     else:
         out_file = ctx.actions.declare_file("lib" + ctx.label.name + ".a")
         args = ["r", out_file.path] + [f.path for f in libraries]
+
+        # Wtf bazel: https://github.com/bazelbuild/bazel/issues/5127 !!!
+        ar = cc_toolchain.ar_executable
+        ar_str = "%s" % ar
+        if ar_str.find("libtool", 0) != -1:
+            ar = "/usr/bin/ar"
         ctx.actions.run(
             inputs = depset(libraries),
             outputs = [out_file],
-            executable = cc_toolchain.ar_executable,
+            executable = ar,
             arguments = args,
         )
         return [DefaultInfo(files = depset([out_file]))]

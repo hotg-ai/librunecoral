@@ -19,6 +19,7 @@ build:linux --cxxopt=-std=c++17
 build:linux --host_cxxopt=-std=c++17
 build:linux --copt=-w
 build:linux --crosstool_top=@crosstool//:toolchains
+build:linux --force_pic
 
 # This needs to be added because of https://github.com/google/mediapipe/issues/305
 build:linux --copt=-DEGL_NO_X11
@@ -110,7 +111,8 @@ build:ios_fat --watchos_cpus=armv7k
 
 build:darwin_x86_64 --apple_platform_type=macos
 build:darwin_x86_64 --macos_minimum_os=10.12
-build:darwin_x86_64 --cpu=darwin_x86_64
+build:darwin_x86_64 --cpu=darwin
+build:darwin_x86_64 --force_pic
 
 # This bazelrc file is meant to be written by a setup script.
 try-import %workspace%/.configure.bazelrc

@@ -142,9 +142,8 @@ fn main() {
 
     if std::env::var("RUNECORAL_DIST_DIR").is_err() {
         match  target_os.as_str() {
-            "linux" => make_librunecoral(&target_os),
-            "android" => make_librunecoral(&target_os),
             "windows" => make_librunecoral_windows(),
+            "linux" | "android" | "macos" | "ios"  => make_librunecoral(&target_os),
             _ => panic!("Target OS not supported!")
         };
         make_runecoral_h();
@@ -159,6 +158,10 @@ fn main() {
 
     if target_os.as_str() == "linux" {
         println!("cargo:rustc-flags=-l dylib=stdc++");
+    }
+
+    if target_os.as_str() == "macos" {
+        println!("cargo:rustc-flags=-l dylib=c++");
     }
 
     let bindings = Builder::default()
