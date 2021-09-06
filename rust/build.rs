@@ -114,10 +114,10 @@ fn make_librunecoral_windows() {
     fs::create_dir_all(librunecoral_path()).unwrap();
 
     let mut cmd = Command::new("bazel");
-    cmd.arg("--output_base")
-       .arg(project_root().join(".cache").join("bazel"));
 
     cmd.arg("build")
+       .arg("--disk_cache")
+       .arg(project_root().join(".cache").join("bazel"))
        .arg("--config")
        .arg("windows")
        .arg("//runecoral:runecoral");

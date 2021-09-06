@@ -9,7 +9,7 @@ on:
     - master
 
 jobs:
-  build:
+  build_linux:
     runs-on: ubuntu-18.04
     strategy:
       matrix:
@@ -23,9 +23,19 @@ jobs:
       - name: Cache build dependencies
         uses: actions/cache@v2
         with:
-          key: ${{ runner.os }}-${{ github.workflow }}-${{ github.job }}-${{ matrix.target }}
+          key: librunecoral-${{ runner.os }}-${{ github.workflow }}-${{ github.job }}-${{ matrix.target }}-${{ hashFiles('**/Cargo.lock') }}
           path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+            rust/Cargo.lock
             .cache
+
+      - name: Install build dependencies
+        if: ${{ matrix.target == 'linux' }}
+        run: |
+          sudo apt-get install -y libegl1-mesa-dev libgles2-mesa-dev
+
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v1
         with:
@@ -35,44 +45,20 @@ jobs:
 
       - name: Build packages
         run: |
+            make runecoral_header
             make librunecoral-${{ matrix.target }} EDGETPU_ACCELERATION=true GPU_ACCELERATION=true
-      - uses: actions/upload-artifact@v2
-        with:
-          name: ${{ github.run_id }}-librunecoral-artifacts-${{ matrix.target }}
-          path: dist/
-
-  rust:
-    runs-on: ubuntu-18.04
-    steps:
-      - uses: actions/checkout@v1
-        with:
-          submodules: true
-
-      - uses: actions/cache@v2
-        with:
-          path: |
-            ~/.cargo/registry
-            ~/.cargo/git
-            target
-            rust/Cargo.lock
-            .cache
-          key: ${{ runner.os }}-${{ github.workflow }}-${{ github.job }}-${{ hashFiles('**/Cargo.lock') }}
-
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@v1
-        with:
-          registry: docker.pkg.github.com
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
 
       # libclang is needed by bindgen
+      # TODO: run the appropriate rust checks using cross for each matrix.target, and cpu architecture
       - name: Install LLVM and Clang
+        if: ${{ matrix.target == 'linux' }}
         uses: KyleMayes/install-llvm-action@v1
         with:
           version: "11.0"
           directory: ${{ runner.temp }}/llvm
 
       - name: Install Rust
+        if: ${{ matrix.target == 'linux' }}
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
@@ -80,16 +66,27 @@ jobs:
           override: true
 
       - name: Cargo Check
+        if: ${{ matrix.target == 'linux' }}
         uses: actions-rs/cargo@v1
+        env:
+          RUNECORAL_DIST_DIR: "${{ github.workspace }}/dist/"
         with:
           command: check
-          args: --manifest-path rust/Cargo.toml
+          args: --all-features --manifest-path rust/Cargo.toml
 
       - name: Cargo Test
+        if: ${{ matrix.target == 'linux' }}
         uses: actions-rs/cargo@v1
+        env:
+          RUNECORAL_DIST_DIR: "${{ github.workspace }}/dist/"
         with:
           command: test
-          args: --manifest-path rust/Cargo.toml
+          args: --all-features --manifest-path rust/Cargo.toml
+
+      - uses: actions/upload-artifact@v2
+        with:
+          name: ${{ github.run_id }}-librunecoral-artifacts-${{ matrix.target }}
+          path: dist/
 
   build_windows:
     runs-on: windows-2019
@@ -106,7 +103,7 @@ jobs:
             target
             rust/Cargo.lock
             .cache
-          key: ${{ runner.os }}-${{ github.workflow }}-${{ github.job }}
+          key: librunecoral-${{ runner.os }}-${{ github.workflow }}-${{ github.job }}-${{ hashFiles('**/Cargo.lock') }}
 
       - name: Install Build Dependencies
         run: |
@@ -118,7 +115,7 @@ jobs:
         run: |
           mkdir -p dist/include
           mkdir -p dist/lib/windows/x86_64/
-          bazel --output_base .cache/bazel build --config windows //runecoral:runecoral
+          bazel build --disk_cache .cache/bazel --config windows //runecoral:runecoral
           cp runecoral/runecoral.h dist/include
           cp bazel-bin/runecoral/runecoral.lib dist/lib/windows/x86_64/
 
@@ -158,7 +155,7 @@ jobs:
           path: dist/
 
       - name: Shutdown Bazel
-        run:
+        run: |
           bazel shutdown
           wmic process where "name like '%java%'" delete
           wmic process where "name like '%bazel%'" delete
