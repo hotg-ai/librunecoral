@@ -60,8 +60,19 @@ librunecoral-android-%: runecoral/runecoral.h runecoral/runecoral.cpp runecoral/
 	mkdir -p $(PREFIX)/dist/lib/android/$*/
 	install bazel-bin/runecoral/librunecoral.a $(PREFIX)/dist/lib/android/$*
 
+librunecoral-macos-%: runecoral/runecoral.h runecoral/runecoral.cpp runecoral/private/accelerationbackends.h runecoral/private/utils.h
+	mkdir -p $(PREFIX)/dist/lib/macos/$*/
+	bazel build -c $(COMPILATION_MODE) $(BAZEL_BUILD_FLAGS) --config=darwin_$* //runecoral:runecoral
+	install bazel-bin/runecoral/librunecoral.a $(PREFIX)/dist/lib/macos/$*
+
+librunecoral-ios-%: runecoral/runecoral.h runecoral/runecoral.cpp runecoral/private/accelerationbackends.h runecoral/private/utils.h
+	mkdir -p $(PREFIX)/dist/lib/ios/$*/
+	bazel build -c $(COMPILATION_MODE) $(BAZEL_BUILD_FLAGS) --config=ios_$* //runecoral:runecoral
+	install bazel-bin/runecoral/librunecoral.a $(PREFIX)/dist/lib/ios/$*
+
 librunecoral-linux: librunecoral-linux-arm librunecoral-linux-arm64 librunecoral-linux-x86_64
 librunecoral-android: librunecoral-android-arm librunecoral-android-arm64 librunecoral-android-x86
+librunecoral-apple: librunecoral-macos-x86_64 librunecoral-ios-arm64
 
 docker-image-linux:
 	docker build $(DOCKER_IMAGE_OPTIONS) -t $(DOCKER_IMAGE_LINUX) -f $(MAKEFILE_DIR)/docker/Dockerfile.Linux $(MAKEFILE_DIR)/docker
