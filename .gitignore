@@ -5,5 +5,4 @@ example/build/*
 *.user
 .DS_Store
 target/
-Cargo.lock
 .cache
