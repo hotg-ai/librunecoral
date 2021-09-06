@@ -7,7 +7,7 @@ A thinly veiled wrapper around tflite and libedgetpu from Google
 
 #### Prerequisites
 
-Linux:
+Linux/Android:
 * docker installation [set up properly](https://docs.docker.com/get-started/)
 * git
 

@@ -19,7 +19,9 @@ ifeq ($(filter $(COMPILATION_MODE),opt dbg fastbuild),)
 $(error COMPILATION_MODE must be opt, dbg or fastbuild)
 endif
 
-BAZEL := bazel --output_base $(MAKEFILE_DIR)/.cache/bazel
+BAZEL := bazel
+
+BAZEL_BUILD_FLAGS := --disk_cache $(MAKEFILE_DIR)/.cache/bazel
 
 ifeq ($(COMPILATION_MODE), opt)
 BAZEL_BUILD_FLAGS += --linkopt=-Wl,--strip-all
@@ -55,7 +57,7 @@ librunecoral-linux-%: runecoral/runecoral.h runecoral/runecoral.cpp runecoral/pr
 
 librunecoral-android-%: runecoral/runecoral.h runecoral/runecoral.cpp runecoral/private/accelerationbackends.h runecoral/private/utils.h
 	$(DOCKER_RUN) $(DOCKER_IMAGE_ANDROID) $(BAZEL) build -c $(COMPILATION_MODE) $(BAZEL_BUILD_FLAGS) --config=android_$* //runecoral:runecoral
-	mkdir -p $(PREFIX)/dist/lib/android/$*/ ;
+	mkdir -p $(PREFIX)/dist/lib/android/$*/
 	install bazel-bin/runecoral/librunecoral.a $(PREFIX)/dist/lib/android/$*
 
 librunecoral-linux: librunecoral-linux-arm librunecoral-linux-arm64 librunecoral-linux-x86_64
