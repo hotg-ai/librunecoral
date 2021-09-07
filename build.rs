@@ -1,12 +1,13 @@
-use std::{fs, path::{Path, PathBuf}, process::{Command, Output, Stdio}};
+use std::{
+    fs,
+    path::{Path, PathBuf},
+    process::{Command, Output, Stdio},
+};
 
 use bindgen::Builder;
 
 fn project_root() -> PathBuf {
-    Path::new(env!("CARGO_MANIFEST_DIR"))
-        .parent()
-        .unwrap()
-        .to_path_buf()
+    Path::new(env!("CARGO_MANIFEST_DIR")).to_path_buf()
 }
 
 /**
@@ -37,21 +38,23 @@ use the precompiled libraries from this path.
 fn dist_dir() -> PathBuf {
     match std::env::var("RUNECORAL_DIST_DIR") {
         Ok(dir) => Path::new(&dir).to_path_buf(),
-        _ => project_root().join(std::env::var("OUT_DIR").unwrap())
+        _ => project_root()
+            .join(std::env::var("OUT_DIR").unwrap())
             .join("dist")
-            .to_path_buf()
+            .to_path_buf(),
     }
 }
 
 fn target_arch() -> String {
     match std::env::var("CARGO_CFG_TARGET_ARCH").unwrap().as_ref() {
         "aarch64" => "arm64".to_string(),
-        _ => std::env::var("CARGO_CFG_TARGET_ARCH").unwrap()
+        _ => std::env::var("CARGO_CFG_TARGET_ARCH").unwrap(),
     }
 }
 
-fn librunecoral_path() -> PathBuf  {
-    dist_dir().join("lib")
+fn librunecoral_path() -> PathBuf {
+    dist_dir()
+        .join("lib")
         .join(std::env::var("CARGO_CFG_TARGET_OS").unwrap())
         .join(target_arch())
 }
@@ -68,8 +71,8 @@ fn execute_cmd(mut cmd: Command) {
     } = cmd.output().unwrap();
 
     cmd.stdin(Stdio::null())
-       .stdout(Stdio::piped())
-       .stderr(Stdio::piped());
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped());
 
     if !status.success() {
         let stdout = String::from_utf8_lossy(&stdout);
@@ -88,7 +91,11 @@ fn execute_cmd(mut cmd: Command) {
 
 fn make_runecoral_h() {
     fs::create_dir_all(runecoral_h_path()).unwrap();
-    fs::copy(project_root().join("runecoral").join("runecoral.h"), runecoral_h_path().join("runecoral.h")).ok();
+    fs::copy(
+        project_root().join("runecoral").join("runecoral.h"),
+        runecoral_h_path().join("runecoral.h"),
+    )
+    .ok();
 }
 
 fn make_librunecoral(target_os: &str) {
@@ -97,7 +104,7 @@ fn make_librunecoral(target_os: &str) {
 
     cmd.current_dir(project_root());
     cmd.arg(format!("librunecoral-{}-{}", target_os, target_arch()))
-       .arg(format!("PREFIX={}", std::env::var("OUT_DIR").unwrap()));
+        .arg(format!("PREFIX={}", std::env::var("OUT_DIR").unwrap()));
 
     if cfg!(feature = "edgetpu_acceleration") {
         cmd.arg("EDGETPU_ACCELERATION=true");
@@ -116,11 +123,11 @@ fn make_librunecoral_windows() {
     let mut cmd = Command::new("bazel");
 
     cmd.arg("build")
-       .arg("--disk_cache")
-       .arg(project_root().join(".cache").join("bazel"))
-       .arg("--config")
-       .arg("windows")
-       .arg("//runecoral:runecoral");
+        .arg("--disk_cache")
+        .arg(project_root().join(".cache").join("bazel"))
+        .arg("--config")
+        .arg("windows")
+        .arg("//runecoral:runecoral");
 
     if cfg!(feature = "edgetpu_acceleration") {
         cmd.arg("--define edgetpu_acceleration=true");
@@ -132,7 +139,14 @@ fn make_librunecoral_windows() {
     cmd.current_dir(project_root());
 
     execute_cmd(cmd);
-    fs::copy(project_root().join("bazel-bin").join("runecoral").join("runecoral.lib"), librunecoral_path().join("runecoral.lib")).ok();
+    fs::copy(
+        project_root()
+            .join("bazel-bin")
+            .join("runecoral")
+            .join("runecoral.lib"),
+        librunecoral_path().join("runecoral.lib"),
+    )
+    .ok();
 }
 
 fn main() {
@@ -141,15 +155,21 @@ fn main() {
     let target_os = std::env::var("CARGO_CFG_TARGET_OS").unwrap();
 
     if std::env::var("RUNECORAL_DIST_DIR").is_err() {
-        match  target_os.as_str() {
+        match target_os.as_str() {
             "windows" => make_librunecoral_windows(),
-            "linux" | "android" | "macos" | "ios"  => make_librunecoral(&target_os),
-            _ => panic!("Target OS not supported!")
+            "linux" | "android" | "macos" | "ios" => make_librunecoral(&target_os),
+            _ => panic!("Target OS not supported!"),
         };
         make_runecoral_h();
     }
 
-    println!("cargo:rustc-link-search={}", project_root().join(librunecoral_path()).display().to_string());
+    println!(
+        "cargo:rustc-link-search={}",
+        project_root()
+            .join(librunecoral_path())
+            .display()
+            .to_string()
+    );
     println!("cargo:rustc-link-lib=runecoral");
     if cfg!(feature = "gpu_acceleration") {
         println!("cargo:rustc-link-lib=EGL");
