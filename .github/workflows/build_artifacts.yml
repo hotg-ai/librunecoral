@@ -28,7 +28,7 @@ jobs:
             ~/.cargo/registry
             ~/.cargo/git
             target
-            rust/Cargo.lock
+            Cargo.lock
             .cache
 
       - name: Install build dependencies
@@ -72,7 +72,7 @@ jobs:
           RUNECORAL_DIST_DIR: "${{ github.workspace }}/dist/"
         with:
           command: check
-          args: --all-features --manifest-path rust/Cargo.toml
+          args: --all-features
 
       - name: Cargo Test
         if: ${{ matrix.target == 'linux' }}
@@ -81,7 +81,7 @@ jobs:
           RUNECORAL_DIST_DIR: "${{ github.workspace }}/dist/"
         with:
           command: test
-          args: --all-features --manifest-path rust/Cargo.toml
+          args: --all-features
 
       - uses: actions/upload-artifact@v2
         with:
@@ -101,7 +101,7 @@ jobs:
             ~/.cargo/registry
             ~/.cargo/git
             target
-            rust/Cargo.lock
+            Cargo.lock
             .cache
           key: librunecoral-${{ runner.os }}-${{ github.workflow }}-${{ github.job }}-${{ hashFiles('**/Cargo.lock') }}
 
@@ -139,7 +139,6 @@ jobs:
           RUNECORAL_DIST_DIR: "${{ github.workspace }}/dist/"
         with:
           command: check
-          args: --manifest-path rust/Cargo.toml
 
       - name: Cargo Test
         uses: actions-rs/cargo@v1
@@ -147,7 +146,6 @@ jobs:
           RUNECORAL_DIST_DIR: "${{ github.workspace }}/dist/"
         with:
           command: test
-          args: --manifest-path rust/Cargo.toml
 
       - uses: actions/upload-artifact@v2
         with:
@@ -176,7 +174,7 @@ jobs:
             ~/.cargo/registry
             ~/.cargo/git
             target
-            rust/Cargo.lock
+            Cargo.lock
             .cache
 
       - uses: maxim-lobanov/setup-xcode@v1
@@ -209,7 +207,6 @@ jobs:
           RUNECORAL_DIST_DIR: "${{ github.workspace }}/dist/"
         with:
           command: check
-          args: --manifest-path rust/Cargo.toml
 
       - name: Cargo Test
         uses: actions-rs/cargo@v1
@@ -217,7 +214,6 @@ jobs:
           RUNECORAL_DIST_DIR: "${{ github.workspace }}/dist/"
         with:
           command: test
-          args: --manifest-path rust/Cargo.toml
 
       - uses: actions/upload-artifact@v2
         with:
