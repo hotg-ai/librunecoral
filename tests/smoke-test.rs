@@ -17,33 +17,36 @@ fn mimetype() -> &'static str {
 }
 
 #[test]
-#[ignore = "https://github.com/hotg-ai/librunecoral/issues/7"]
 fn create_inference_context_with_invalid_model() {
     let model = b"this is not a valid model";
 
-    let _ = hotg_runecoral::InferenceContext::create_context(mimetype(), model, &[], &[], hotg_runecoral::AccelerationBackend::NONE)
-        .unwrap();
+    let result = hotg_runecoral::InferenceContext::create_context(mimetype(), model,  hotg_runecoral::AccelerationBackend::NONE);
+
+    assert_eq!(result.unwrap_err(), Error::Load(LoadError::InternalError));
 }
 
 #[test]
-fn create_inference_context_with_incorrect_number_of_tensors() {
+fn create_inference_context() {
     let model = include_bytes!("sinemodel.tflite");
 
-    let err = hotg_runecoral::InferenceContext::create_context(mimetype(), model, &[], &[], hotg_runecoral::AccelerationBackend::NONE)
-        .unwrap_err();
+    let descriptors = vec![TensorDescriptor {
+        element_type: ElementType::Float32,
+        shape: Cow::Borrowed(&[1, 1]),
+    }];
 
-    assert_eq!(err, Error::Load(LoadError::IncorrectArgumentSizes));
+    let context = hotg_runecoral::InferenceContext::create_context(mimetype(), model, hotg_runecoral::AccelerationBackend::NONE)
+        .unwrap();
+
+    assert_eq!(context.inputs(), descriptors);
+    assert_eq!(context.outputs(), descriptors);
+    assert_eq!(context.opcount(), 3);
 }
 
 #[test]
 fn run_inference_using_the_sine_model() {
     let model = include_bytes!("sinemodel.tflite");
-    let descriptors = [TensorDescriptor {
-        element_type: ElementType::Float32,
-        shape: Cow::Borrowed(&[1, 1]),
-    }];
 
-    let mut ctx = hotg_runecoral::InferenceContext::create_context(mimetype(), model, &descriptors, &descriptors, hotg_runecoral::AccelerationBackend::NONE)
+    let mut ctx = hotg_runecoral::InferenceContext::create_context(mimetype(), model, hotg_runecoral::AccelerationBackend::NONE)
         .unwrap();
 
     let input = [0.5_f32];

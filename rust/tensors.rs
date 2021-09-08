@@ -6,7 +6,7 @@ use crate::ffi;
 #[derive(Debug, Clone, PartialEq)]
 pub struct TensorDescriptor<'a> {
     pub element_type: ElementType,
-    pub shape: Cow<'a, [ffi::size_t]>,
+    pub shape: Cow<'a, [i32]>,
 }
 
 /// Possible element types that can be used in a [`Tensor`].
@@ -81,12 +81,44 @@ impl From<ElementType> for ffi::RuneCoralElementType {
     }
 }
 
+impl From<ffi::RuneCoralElementType> for ElementType {
+    fn from(e: ffi::RuneCoralElementType) -> ElementType {
+        match e {
+            ffi::RuneCoralElementType__NoType => ElementType::NoType,
+            ffi::RuneCoralElementType__Float32 => ElementType::Float32,
+            ffi::RuneCoralElementType__Int32 => ElementType::Int32,
+            ffi::RuneCoralElementType__UInt8 => ElementType::UInt8,
+            ffi::RuneCoralElementType__Int64 => ElementType::Int64,
+            ffi::RuneCoralElementType__String => ElementType::String,
+            ffi::RuneCoralElementType__Bool => ElementType::Bool,
+            ffi::RuneCoralElementType__Int16 => ElementType::Int16,
+            ffi::RuneCoralElementType__Complex64 => ElementType::Complex64,
+            ffi::RuneCoralElementType__Int8 => ElementType::Int8,
+            ffi::RuneCoralElementType__Float16 => ElementType::Float16,
+            ffi::RuneCoralElementType__Float64 => ElementType::Float64,
+            ffi::RuneCoralElementType__Complex128 => ElementType::Complex128,
+            _ => ElementType::NoType
+        }
+    }
+}
+
+impl<'a> TensorDescriptor<'a> {
+    pub fn from_rune_coral_tensor(item: &ffi::RuneCoralTensor) -> TensorDescriptor {
+        unsafe {
+            TensorDescriptor {
+                element_type: ElementType::from(item.type_),
+                shape: Cow::Owned(std::slice::from_raw_parts(item.shape as *const i32, item.rank as usize).to_vec())
+            }
+        }
+    }
+}
+
 /// An immutable reference to a tensor's backing buffer.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Tensor<'a> {
     pub element_type: ElementType,
     pub buffer: &'a [u8],
-    pub shape: Cow<'a, [ffi::size_t]>,
+    pub shape: Cow<'a, [i32]>,
 }
 
 impl<'a> Tensor<'a> {
@@ -104,7 +136,7 @@ impl<'a> Tensor<'a> {
         Tensor {
             element_type: E::ELEMENT_TYPE,
             buffer: E::byte_buffer(slice),
-            shape: dimensions.iter().map(|&d| d as ffi::size_t).collect(),
+            shape: dimensions.iter().map(|&d| d as i32).collect(),
         }
     }
 
@@ -122,7 +154,7 @@ impl<'a> Tensor<'a> {
 pub struct TensorMut<'a> {
     pub element_type: ElementType,
     pub buffer: &'a mut [u8],
-    pub shape: Cow<'a, [ffi::size_t]>,
+    pub shape: Cow<'a, [i32]>,
 }
 
 impl<'a> TensorMut<'a> {
@@ -140,7 +172,7 @@ impl<'a> TensorMut<'a> {
         TensorMut {
             element_type: E::ELEMENT_TYPE,
             buffer: E::byte_buffer_mut(slice),
-            shape: dimensions.iter().map(|&d| d as ffi::size_t).collect(),
+            shape: dimensions.iter().map(|&d| d as i32).collect(),
         }
     }
 

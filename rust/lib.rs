@@ -22,8 +22,6 @@
 //! let mut ctx = InferenceContext::create_context(
 //!     "application/tflite-context",
 //!     model,
-//!     &[input_tensor.descriptor()],
-//!     &[output_tensor.descriptor()],
 //!     AccelerationBackend::NONE,
 //! )?;
 //!

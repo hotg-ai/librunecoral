@@ -4,7 +4,7 @@ use std::{
     ffi::{CString},
     mem::MaybeUninit,
     fmt::{self, Debug, Formatter},
-    ptr::{self, NonNull},
+    ptr::NonNull,
 };
 use bitflags::bitflags;
 
@@ -54,15 +54,10 @@ impl InferenceContext {
     pub fn create_context(
         mimetype: &str,
         model: &[u8],
-        inputs: &[TensorDescriptor<'_>],
-        outputs: &[TensorDescriptor<'_>],
         acceleration_backend: AccelerationBackend
     ) -> Result<InferenceContext, Error> {
         let mimetype = CString::new(mimetype)?;
         let mut inference_context = MaybeUninit::uninit();
-
-        let inputs = dummy_tensors(inputs);
-        let outputs = dummy_tensors(outputs);
 
         // Safety: We've ensured our inputs are sane by construction (i.e. Rust
         // doesn't let you create a null slice and all enums are exhaustive)
@@ -73,10 +68,6 @@ impl InferenceContext {
                 mimetype.as_ptr(),
                 model.as_ptr().cast(),
                 model.len() as ffi::size_t,
-                inputs.as_ptr(),
-                inputs.len() as ffi::size_t,
-                outputs.as_ptr(),
-                outputs.len() as ffi::size_t,
                 (acceleration_backend.bits() as i32).try_into().unwrap(),
                 inference_context.as_mut_ptr(),
             );
@@ -88,6 +79,31 @@ impl InferenceContext {
             Ok(InferenceContext::new(
                 NonNull::new(inference_context).expect("Should be initialized")
             ))
+        }
+    }
+
+    pub fn opcount(&self) -> u64 {
+        unsafe {
+            ffi::inference_opcount(self.ctx.as_ptr())
+        }
+    }
+
+    pub fn inputs(&self) -> Vec<TensorDescriptor> {
+        unsafe {
+            let mut input_tensors =  MaybeUninit::uninit();
+            let input_count = ffi::inference_inputs(self.ctx.as_ptr(), input_tensors.as_mut_ptr());
+
+            (0..input_count).map(|i| TensorDescriptor::from_rune_coral_tensor(&*((*input_tensors.as_ptr()).offset(i as isize))))
+                            .collect()
+        }
+    }
+
+    pub fn outputs(&self) -> Vec<TensorDescriptor> {
+        unsafe {
+            let mut outputs =  MaybeUninit::uninit();
+            let output_count = ffi::inference_outputs(self.ctx.as_ptr(), outputs.as_mut_ptr());
+            (0..output_count).map(|i| TensorDescriptor::from_rune_coral_tensor(&*((*outputs.as_ptr()).offset(i as isize))))
+                            .collect()
         }
     }
 
@@ -112,31 +128,10 @@ impl Drop for InferenceContext {
     }
 }
 
-/// Get a list of dummy empty tensors for a given a list of tensor descriptors
-pub fn dummy_tensors(inputs: &[TensorDescriptor<'_>]) -> Vec<ffi::RuneCoralTensor> {
-    let mut tensors = Vec::new();
-
-    for input in inputs {
-        let tensor = ffi::RuneCoralTensor {
-            type_: input.element_type as ffi::RuneCoralElementType,
-            data: ptr::null_mut(),
-            shape: input.shape.as_ptr(),
-            rank: input.shape.len() as _,
-        };
-        tensors.push(tensor);
-    }
-
-    tensors
-}
-
 #[derive(Debug, Copy, Clone, PartialEq, thiserror::Error)]
 pub enum LoadError {
     #[error("Incorrect mimetype")]
     IncorrectMimeType,
-    #[error("Incorrect argument types")]
-    IncorrectArgumentTypes,
-    #[error("Incorrect argument sizes")]
-    IncorrectArgumentSizes,
     #[error("Internal error")]
     InternalError,
     #[error("Unknown error {}", return_code)]
@@ -149,8 +144,6 @@ fn check_load_result(return_code: ffi::RuneCoralLoadResult) -> Result<(), LoadEr
     match return_code {
         ffi::RuneCoralLoadResult__Ok => Ok(()),
         ffi::RuneCoralLoadResult__IncorrectMimeType => Err(LoadError::IncorrectMimeType),
-        ffi::RuneCoralLoadResult__IncorrectArgumentSizes => Err(LoadError::IncorrectArgumentSizes),
-        ffi::RuneCoralLoadResult__IncorrectArgumentTypes => Err(LoadError::IncorrectArgumentTypes),
         ffi::RuneCoralLoadResult__InternalError => Err(LoadError::InternalError),
         _ => Err(LoadError::Other { return_code }),
     }

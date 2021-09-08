@@ -31,7 +31,7 @@ typedef struct {
   // Opaque bytes containing the tensor's data.
   void *data;
   // An array containing the length of each of the tensor's dimensions.
-  const size_t *shape;
+  const int *shape;
   // How many dimensions are there?
   size_t rank;
 } RuneCoralTensor;
@@ -41,8 +41,6 @@ typedef struct RuneCoralContext RuneCoralContext;
 typedef enum {
   RuneCoralLoadResult__Ok = 0,
   RuneCoralLoadResult__IncorrectMimeType,
-  RuneCoralLoadResult__IncorrectArgumentTypes,
-  RuneCoralLoadResult__IncorrectArgumentSizes,
   RuneCoralLoadResult__InternalError,
 } RuneCoralLoadResult;
 
@@ -61,10 +59,17 @@ int availableAccelerationBackends();
 // And then create an interpreter for the model to be interpreted
 // Also verifies if the input and output tensors match that of model
 RuneCoralLoadResult create_inference_context(const char *mimetype, const void *model, size_t model_len,
-                                             const RuneCoralTensor *inputs, size_t num_inputs,
-                                             const RuneCoralTensor *outputs, size_t num_outputs,
                                              const RuneCoralAccelerationBackend backend,
                                              RuneCoralContext **inferenceContext);
+
+// Returns the number of opcodes currently used
+size_t inference_opcount(const RuneCoralContext * const inferenceContext);
+
+// Return the number of input tensors of the current inference context, and update tensors to point to them
+size_t inference_inputs(const RuneCoralContext * const inferenceContext, const RuneCoralTensor ** tensors);
+
+// Return the number of output tensors of the current inference context, and update tensors to point to them
+size_t inference_outputs(const RuneCoralContext * const inferenceContext, const RuneCoralTensor ** tensors);
 
 // frees all the resources allocated for a context
 void destroy_inference_context(RuneCoralContext *inferenceContext);
