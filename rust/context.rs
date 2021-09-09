@@ -115,7 +115,13 @@ unsafe fn descriptors<'a>(
 ) -> impl Iterator<Item = TensorDescriptor<'a>> {
     // Safety: Assumes the tensors are valid. The caller guarantees the 'a
     // lifetime doesn't outlive the original tensors.
-    let tensors = std::slice::from_raw_parts(tensors, len as usize);
+    let tensors = if len > 0 {
+        std::slice::from_raw_parts(tensors, len as usize)
+    } else {
+        // Note: The tensors pointer may be null when len == 0, so let's swap it
+        // out with an empty slice
+        &[]
+    };
 
     tensors.iter().map(TensorDescriptor::from_rune_coral_tensor)
 }
