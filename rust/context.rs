@@ -1,12 +1,12 @@
-use crate::{ffi, Error, Tensor, TensorMut, TensorDescriptor};
+use crate::{ffi, Error, Tensor, TensorDescriptor, TensorMut};
+use bitflags::bitflags;
 use std::{
     convert::TryInto,
-    ffi::{CString},
-    mem::MaybeUninit,
+    ffi::CString,
     fmt::{self, Debug, Formatter},
+    mem::MaybeUninit,
     ptr::NonNull,
 };
-use bitflags::bitflags;
 
 /// A backend which can run inference on a model.
 pub struct InferenceContext {
@@ -20,9 +20,7 @@ impl InferenceContext {
     ///
     /// This takes ownership of the `ctx` pointer and will deallocate it on
     /// drop.
-    pub(crate) unsafe fn new(
-        ctx: NonNull<ffi::RuneCoralContext>,
-    ) -> Self {
+    pub(crate) unsafe fn new(ctx: NonNull<ffi::RuneCoralContext>) -> Self {
         InferenceContext { ctx }
     }
 
@@ -54,7 +52,7 @@ impl InferenceContext {
     pub fn create_context(
         mimetype: &str,
         model: &[u8],
-        acceleration_backend: AccelerationBackend
+        acceleration_backend: AccelerationBackend,
     ) -> Result<InferenceContext, Error> {
         let mimetype = CString::new(mimetype)?;
         let mut inference_context = MaybeUninit::uninit();
@@ -77,37 +75,45 @@ impl InferenceContext {
             let inference_context = inference_context.assume_init();
 
             Ok(InferenceContext::new(
-                NonNull::new(inference_context).expect("Should be initialized")
+                NonNull::new(inference_context).expect("Should be initialized"),
             ))
         }
     }
 
     pub fn opcount(&self) -> u64 {
-        unsafe {
-            ffi::inference_opcount(self.ctx.as_ptr())
-        }
+        unsafe { ffi::inference_opcount(self.ctx.as_ptr()) }
     }
 
     pub fn inputs(&self) -> Vec<TensorDescriptor> {
         unsafe {
-            let mut input_tensors =  MaybeUninit::uninit();
+            let mut input_tensors = MaybeUninit::uninit();
             let input_count = ffi::inference_inputs(self.ctx.as_ptr(), input_tensors.as_mut_ptr());
 
-            (0..input_count).map(|i| TensorDescriptor::from_rune_coral_tensor(&*((*input_tensors.as_ptr()).offset(i as isize))))
-                            .collect()
+            (0..input_count)
+                .map(|i| {
+                    TensorDescriptor::from_rune_coral_tensor(
+                        &*((*input_tensors.as_ptr()).offset(i as isize)),
+                    )
+                })
+                .collect()
         }
     }
 
     pub fn outputs(&self) -> Vec<TensorDescriptor> {
         unsafe {
-            let mut outputs =  MaybeUninit::uninit();
+            let mut outputs = MaybeUninit::uninit();
             let output_count = ffi::inference_outputs(self.ctx.as_ptr(), outputs.as_mut_ptr());
-            (0..output_count).map(|i| TensorDescriptor::from_rune_coral_tensor(&*((*outputs.as_ptr()).offset(i as isize))))
-                            .collect()
+            (0..output_count)
+                .map(|i| {
+                    TensorDescriptor::from_rune_coral_tensor(
+                        &*((*outputs.as_ptr()).offset(i as isize)),
+                    )
+                })
+                .collect()
         }
     }
 
-    pub fn available_acceleration_backends () -> AccelerationBackend {
+    pub fn available_acceleration_backends() -> AccelerationBackend {
         unsafe {
             AccelerationBackend::from_bits(ffi::availableAccelerationBackends() as u32).unwrap()
         }

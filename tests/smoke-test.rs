@@ -1,18 +1,16 @@
-use hotg_runecoral::{ElementType, Error, InferenceContext, LoadError, Tensor, TensorDescriptor, TensorMut};
-use std::{
-    borrow::Cow,
-    ffi::CStr
+use hotg_runecoral::{
+    ElementType, Error, InferenceContext, LoadError, Tensor, TensorDescriptor, TensorMut,
 };
+use std::{borrow::Cow, ffi::CStr};
 
 /// If this isn't provided, the library will be compiled from scratch using the
 /// `docker` image.
 
-
 fn mimetype() -> &'static str {
     unsafe {
         CStr::from_ptr(hotg_runecoral::ffi::RUNE_CORAL_MIME_TYPE__TFLITE)
-        .to_str()
-        .unwrap()
+            .to_str()
+            .unwrap()
     }
 }
 
@@ -20,7 +18,11 @@ fn mimetype() -> &'static str {
 fn create_inference_context_with_invalid_model() {
     let model = b"this is not a valid model";
 
-    let result = hotg_runecoral::InferenceContext::create_context(mimetype(), model,  hotg_runecoral::AccelerationBackend::NONE);
+    let result = hotg_runecoral::InferenceContext::create_context(
+        mimetype(),
+        model,
+        hotg_runecoral::AccelerationBackend::NONE,
+    );
 
     assert_eq!(result.unwrap_err(), Error::Load(LoadError::InternalError));
 }
@@ -34,8 +36,12 @@ fn create_inference_context() {
         shape: Cow::Borrowed(&[1, 1]),
     }];
 
-    let context = hotg_runecoral::InferenceContext::create_context(mimetype(), model, hotg_runecoral::AccelerationBackend::NONE)
-        .unwrap();
+    let context = hotg_runecoral::InferenceContext::create_context(
+        mimetype(),
+        model,
+        hotg_runecoral::AccelerationBackend::NONE,
+    )
+    .unwrap();
 
     assert_eq!(context.inputs(), descriptors);
     assert_eq!(context.outputs(), descriptors);
@@ -46,8 +52,12 @@ fn create_inference_context() {
 fn run_inference_using_the_sine_model() {
     let model = include_bytes!("sinemodel.tflite");
 
-    let mut ctx = hotg_runecoral::InferenceContext::create_context(mimetype(), model, hotg_runecoral::AccelerationBackend::NONE)
-        .unwrap();
+    let mut ctx = hotg_runecoral::InferenceContext::create_context(
+        mimetype(),
+        model,
+        hotg_runecoral::AccelerationBackend::NONE,
+    )
+    .unwrap();
 
     let input = [0.5_f32];
     let mut output = [0_f32];
@@ -68,8 +78,14 @@ fn round(n: f32) -> f32 {
 #[test]
 fn query_available_hardware_backends() {
     let backends = InferenceContext::available_acceleration_backends();
-    println!("test query_available_hardware_backends: supports edgetpu acceleration: {}",
-                (backends & hotg_runecoral::AccelerationBackend::EDGETPU == hotg_runecoral::AccelerationBackend::EDGETPU));
-    println!("test query_available_hardware_backends: supports gpu acceleration: {}",
-                (backends & hotg_runecoral::AccelerationBackend::GPU == hotg_runecoral::AccelerationBackend::GPU));
+    println!(
+        "test query_available_hardware_backends: supports edgetpu acceleration: {}",
+        (backends & hotg_runecoral::AccelerationBackend::EDGETPU
+            == hotg_runecoral::AccelerationBackend::EDGETPU)
+    );
+    println!(
+        "test query_available_hardware_backends: supports gpu acceleration: {}",
+        (backends & hotg_runecoral::AccelerationBackend::GPU
+            == hotg_runecoral::AccelerationBackend::GPU)
+    );
 }

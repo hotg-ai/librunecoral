@@ -39,7 +39,7 @@ pub mod ffi;
 mod tensors;
 
 pub use crate::{
-    context::{InferenceContext, LoadError, AccelerationBackend},
+    context::{AccelerationBackend, InferenceContext, LoadError},
     tensors::{ElementType, Tensor, TensorDescriptor, TensorElement, TensorMut},
 };
 

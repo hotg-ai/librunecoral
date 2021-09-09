@@ -97,7 +97,7 @@ impl From<ffi::RuneCoralElementType> for ElementType {
             ffi::RuneCoralElementType__Float16 => ElementType::Float16,
             ffi::RuneCoralElementType__Float64 => ElementType::Float64,
             ffi::RuneCoralElementType__Complex128 => ElementType::Complex128,
-            _ => ElementType::NoType
+            _ => ElementType::NoType,
         }
     }
 }
@@ -107,7 +107,10 @@ impl<'a> TensorDescriptor<'a> {
         unsafe {
             TensorDescriptor {
                 element_type: ElementType::from(item.type_),
-                shape: Cow::Owned(std::slice::from_raw_parts(item.shape as *const i32, item.rank as usize).to_vec())
+                shape: Cow::Owned(
+                    std::slice::from_raw_parts(item.shape as *const i32, item.rank as usize)
+                        .to_vec(),
+                ),
             }
         }
     }
