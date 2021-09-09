@@ -19,9 +19,7 @@ ifeq ($(filter $(COMPILATION_MODE),opt dbg fastbuild),)
 $(error COMPILATION_MODE must be opt, dbg or fastbuild)
 endif
 
-BAZEL := bazel
-
-BAZEL_BUILD_FLAGS := --disk_cache $(MAKEFILE_DIR)/.cache/bazel
+BAZEL ?= bazel
 
 ifeq ($(COMPILATION_MODE), opt)
 BAZEL_BUILD_FLAGS += --linkopt=-Wl,--strip-all

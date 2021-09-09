@@ -122,8 +122,6 @@ fn make_librunecoral_windows() {
     let mut cmd = Command::new("bazel");
 
     cmd.arg("build")
-        .arg("--disk_cache")
-        .arg(project_root().join(".cache").join("bazel"))
         .arg("--config")
         .arg("windows")
         .arg("//runecoral:runecoral");
