@@ -112,12 +112,6 @@ impl InferenceContext {
                 .collect()
         }
     }
-
-    pub fn available_acceleration_backends() -> AccelerationBackend {
-        unsafe {
-            AccelerationBackend::from_bits(ffi::availableAccelerationBackends() as u32).unwrap()
-        }
-    }
 }
 
 impl Debug for InferenceContext {
@@ -197,6 +191,15 @@ bitflags! {
         const NONE = ffi::RuneCoralAccelerationBackend__None as u32;
         const EDGETPU = ffi::RuneCoralAccelerationBackend__Edgetpu as u32;
         const GPU = ffi::RuneCoralAccelerationBackend__Gpu as u32;
+    }
+}
+
+impl AccelerationBackend {
+    /// Get all [`AccelerationBackend`]s that are available on this device.
+    pub fn currently_available() -> Self {
+        unsafe {
+            AccelerationBackend::from_bits(ffi::availableAccelerationBackends() as u32).unwrap()
+        }
     }
 }
 

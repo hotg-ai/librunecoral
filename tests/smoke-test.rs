@@ -77,11 +77,7 @@ fn round(n: f32) -> f32 {
 
 #[test]
 fn query_available_hardware_backends() {
-    let backends = InferenceContext::available_acceleration_backends();
-    println!(
-        "test query_available_hardware_backends: supports edgetpu acceleration: {}",
-        (backends & hotg_runecoral::AccelerationBackend::EDGETPU
-            == hotg_runecoral::AccelerationBackend::EDGETPU)
+    let backends = AccelerationBackend::currently_available();
     );
     println!(
         "test query_available_hardware_backends: supports gpu acceleration: {}",
