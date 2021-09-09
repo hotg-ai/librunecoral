@@ -25,6 +25,8 @@ RuneCoralTensor to_runecoraltensor(const TfLiteTensor &tfLiteTensor) {
 }
 
 struct RuneCoralContext {
+    std::vector<char> model_buffer;
+    // Note: model has pointers into model_buffer
     std::unique_ptr<tflite::FlatBufferModel> model;
     tflite::ops::builtin::BuiltinOpResolver resolver;
     std::unique_ptr<tflite::Interpreter> interpreter;
@@ -83,8 +85,15 @@ RuneCoralLoadResult create_inference_context(const char *mimetype, const void *m
 
     RuneCoralContext *context = new RuneCoralContext();
 
-    //TODO: See if this can be improved with a 0 copy alternative
-    context->model = tflite::FlatBufferModel::VerifyAndBuildFromBuffer(reinterpret_cast<const char*>(model), model_len);
+    // TODO: See if we can avoid this copy by keeping a reference to the
+    // original model data
+    auto m = (const char *)model;
+    std::copy(m, m + model_len, std::back_inserter(context->model_buffer));
+
+    context->model = tflite::FlatBufferModel::VerifyAndBuildFromBuffer(
+        context->model_buffer.data(),
+        context->model_buffer.size()
+    );
 
     // Create the interpreter
     if (context->model) {
