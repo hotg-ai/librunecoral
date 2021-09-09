@@ -23,7 +23,7 @@ jobs:
       - name: Cache build dependencies
         uses: actions/cache@v2
         with:
-          key: librunecoral-${{ runner.os }}-${{ github.workflow }}-${{ github.job }}-${{ matrix.target }}-${{ hashFiles('**/Cargo.lock') }}
+          key: runecoral-${{ runner.os }}-${{ github.workflow }}-${{ github.job }}-${{ matrix.target }}-${{ hashFiles('**/Cargo.lock') }}
           path: |
             ~/.cargo/registry
             ~/.cargo/git
@@ -46,7 +46,7 @@ jobs:
       - name: Build packages
         run: |
             make runecoral_header
-            make librunecoral-${{ matrix.target }} EDGETPU_ACCELERATION=true GPU_ACCELERATION=true
+            make librunecoral-${{ matrix.target }} BAZEL="bazel --output_base=$PWD/.cache" EDGETPU_ACCELERATION=true GPU_ACCELERATION=true
 
       # libclang is needed by bindgen
       # TODO: run the appropriate rust checks using cross for each matrix.target, and cpu architecture
@@ -103,7 +103,7 @@ jobs:
             target
             Cargo.lock
             .cache
-          key: librunecoral-${{ runner.os }}-${{ github.workflow }}-${{ github.job }}-${{ hashFiles('**/Cargo.lock') }}
+          key: runecoral-${{ runner.os }}-${{ github.workflow }}-${{ github.job }}-${{ hashFiles('**/Cargo.lock') }}
 
       - name: Install Build Dependencies
         run: |
@@ -115,7 +115,7 @@ jobs:
         run: |
           mkdir -p dist/include
           mkdir -p dist/lib/windows/x86_64/
-          bazel build --disk_cache .cache/bazel --config windows //runecoral:runecoral
+          bazel --output_base .cache/bazel build --config windows //runecoral:runecoral
           cp runecoral/runecoral.h dist/include
           cp bazel-bin/runecoral/runecoral.lib dist/lib/windows/x86_64/
 
@@ -169,7 +169,7 @@ jobs:
       - name: Cache build dependencies
         uses: actions/cache@v2
         with:
-          key: librunecoral-${{ runner.os }}-${{ github.workflow }}-${{ github.job }}-${{ hashFiles('**/Cargo.lock') }}
+          key: runecoral-${{ runner.os }}-${{ github.workflow }}-${{ github.job }}-${{ hashFiles('**/Cargo.lock') }}
           path: |
             ~/.cargo/registry
             ~/.cargo/git
@@ -192,7 +192,7 @@ jobs:
       - name: Build packages
         run: |
             make runecoral_header
-            make librunecoral-apple
+            make librunecoral-apple BAZEL="bazel --output_base=$PWD/.cache"
 
       - name: Install Rust
         uses: actions-rs/toolchain@v1
@@ -214,6 +214,10 @@ jobs:
           RUNECORAL_DIST_DIR: "${{ github.workspace }}/dist/"
         with:
           command: test
+
+      - name: Shutdown Bazel
+        run: |
+          bazel shutdown
 
       - uses: actions/upload-artifact@v2
         with:
