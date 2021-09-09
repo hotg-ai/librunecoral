@@ -33,6 +33,11 @@ struct RuneCoralContext {
     std::unique_ptr<AccelerationBackend> accelerationBackend;
     std::vector<RuneCoralTensor> inputs;
     std::vector<RuneCoralTensor> outputs;
+
+    // TODO: See if we can avoid this copy by keeping a reference to the
+    // original model data
+    RuneCoralContext(const char *model, size_t model_len)
+        : model_buffer(model, model + model_len) {}
 };
 
 int availableAccelerationBackends() {
@@ -83,12 +88,7 @@ RuneCoralLoadResult create_inference_context(const char *mimetype, const void *m
 
     RuneCoralLoadResult result = RuneCoralLoadResult__Ok;
 
-    RuneCoralContext *context = new RuneCoralContext();
-
-    // TODO: See if we can avoid this copy by keeping a reference to the
-    // original model data
-    auto m = (const char *)model;
-    std::copy(m, m + model_len, std::back_inserter(context->model_buffer));
+    RuneCoralContext *context = new RuneCoralContext{(const char *)model, model_len};
 
     context->model = tflite::FlatBufferModel::VerifyAndBuildFromBuffer(
         context->model_buffer.data(),
