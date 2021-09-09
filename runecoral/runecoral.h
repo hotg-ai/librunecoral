@@ -47,8 +47,8 @@ typedef enum {
 
 typedef enum {
   RuneCoralAccelerationBackend__None = 0,
-  RuneCoralAccelerationBackend__Edgetpu = 1,
-  RuneCoralAccelerationBackend__Gpu = 2
+  RuneCoralAccelerationBackend__Edgetpu = 1 << 0,
+  RuneCoralAccelerationBackend__Gpu = 1 << 1,
 } RuneCoralAccelerationBackend;
 
 // Returns an int with all the backends that are available

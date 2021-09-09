@@ -1,28 +1,14 @@
 use hotg_runecoral::{
-    ElementType, Error, InferenceContext, LoadError, Tensor, TensorDescriptor, TensorMut,
+    mimetype, AccelerationBackend, ElementType, Error, InferenceContext, LoadError, Tensor,
+    TensorDescriptor, TensorMut,
 };
-use std::{borrow::Cow, ffi::CStr};
-
-/// If this isn't provided, the library will be compiled from scratch using the
-/// `docker` image.
-
-fn mimetype() -> &'static str {
-    unsafe {
-        CStr::from_ptr(hotg_runecoral::ffi::RUNE_CORAL_MIME_TYPE__TFLITE)
-            .to_str()
-            .unwrap()
-    }
-}
+use std::borrow::Cow;
 
 #[test]
 fn create_inference_context_with_invalid_model() {
     let model = b"this is not a valid model";
 
-    let result = hotg_runecoral::InferenceContext::create_context(
-        mimetype(),
-        model,
-        hotg_runecoral::AccelerationBackend::NONE,
-    );
+    let result = InferenceContext::create_context(mimetype(), model, AccelerationBackend::NONE);
 
     assert_eq!(result.unwrap_err(), Error::Load(LoadError::InternalError));
 }
@@ -36,28 +22,20 @@ fn create_inference_context() {
         shape: Cow::Borrowed(&[1, 1]),
     }];
 
-    let context = hotg_runecoral::InferenceContext::create_context(
-        mimetype(),
-        model,
-        hotg_runecoral::AccelerationBackend::NONE,
-    )
-    .unwrap();
+    let context =
+        InferenceContext::create_context(mimetype(), model, AccelerationBackend::NONE).unwrap();
 
-    assert_eq!(context.inputs(), descriptors);
-    assert_eq!(context.outputs(), descriptors);
+    assert_eq!(context.inputs().collect::<Vec<_>>(), descriptors);
+    assert_eq!(context.outputs().collect::<Vec<_>>(), descriptors);
     assert_eq!(context.opcount(), 3);
 }
 
 #[test]
 fn run_inference_using_the_sine_model() {
-    let model = include_bytes!("sinemodel.tflite");
+    let mut model = include_bytes!("sinemodel.tflite");
 
-    let mut ctx = hotg_runecoral::InferenceContext::create_context(
-        mimetype(),
-        model,
-        hotg_runecoral::AccelerationBackend::NONE,
-    )
-    .unwrap();
+    let mut ctx =
+        InferenceContext::create_context(mimetype(), model, AccelerationBackend::NONE).unwrap();
 
     let input = [0.5_f32];
     let mut output = [0_f32];

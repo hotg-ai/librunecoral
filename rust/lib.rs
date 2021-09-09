@@ -34,6 +34,13 @@
 //! # }
 //! ```
 
+#![deny(
+    elided_lifetimes_in_paths,
+    missing_debug_implementations,
+    unreachable_pub,
+    unused_crate_dependencies
+)]
+
 mod context;
 pub mod ffi;
 mod tensors;
@@ -43,7 +50,7 @@ pub use crate::{
     tensors::{ElementType, Tensor, TensorDescriptor, TensorElement, TensorMut},
 };
 
-use std::ffi::NulError;
+use std::ffi::{CStr, NulError};
 
 #[derive(Debug, Clone, PartialEq, thiserror::Error)]
 pub enum Error {
@@ -51,4 +58,13 @@ pub enum Error {
     InvalidString(#[from] NulError),
     #[error("Unable to load the model")]
     Load(#[from] LoadError),
+}
+
+/// The mimetype used by this crate to represent TensorFlow Lite models.
+pub fn mimetype() -> &'static str {
+    unsafe {
+        CStr::from_ptr(ffi::RUNE_CORAL_MIME_TYPE__TFLITE)
+            .to_str()
+            .unwrap()
+    }
 }
