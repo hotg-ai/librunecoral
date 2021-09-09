@@ -84,34 +84,40 @@ impl InferenceContext {
         unsafe { ffi::inference_opcount(self.ctx.as_ptr()) }
     }
 
-    pub fn inputs(&self) -> Vec<TensorDescriptor> {
+    pub fn inputs(&self) -> impl Iterator<Item = TensorDescriptor<'_>> + '_ {
         unsafe {
-            let mut input_tensors = MaybeUninit::uninit();
-            let input_count = ffi::inference_inputs(self.ctx.as_ptr(), input_tensors.as_mut_ptr());
+            let mut inputs = MaybeUninit::uninit();
+            let len = ffi::inference_inputs(self.ctx.as_ptr(), inputs.as_mut_ptr());
 
-            (0..input_count)
-                .map(|i| {
-                    TensorDescriptor::from_rune_coral_tensor(
-                        &*((*input_tensors.as_ptr()).offset(i as isize)),
-                    )
-                })
-                .collect()
+            descriptors(inputs.assume_init(), len)
         }
     }
 
-    pub fn outputs(&self) -> Vec<TensorDescriptor> {
+    pub fn outputs(&self) -> impl Iterator<Item = TensorDescriptor<'_>> + '_ {
         unsafe {
             let mut outputs = MaybeUninit::uninit();
-            let output_count = ffi::inference_outputs(self.ctx.as_ptr(), outputs.as_mut_ptr());
-            (0..output_count)
-                .map(|i| {
-                    TensorDescriptor::from_rune_coral_tensor(
-                        &*((*outputs.as_ptr()).offset(i as isize)),
-                    )
-                })
-                .collect()
+            let len = ffi::inference_outputs(self.ctx.as_ptr(), outputs.as_mut_ptr());
+
+            descriptors(outputs.assume_init(), len)
         }
     }
+}
+
+/// Iterate over the [`TensorDescriptor`]s for a set of tensors.
+///
+/// # Safety
+///
+/// The caller must ensure the returned iterator (`'a`) doesn't outlive the data
+/// pointed to by `tensors`.
+unsafe fn descriptors<'a>(
+    tensors: *const ffi::RuneCoralTensor,
+    len: u64,
+) -> impl Iterator<Item = TensorDescriptor<'a>> {
+    // Safety: Assumes the tensors are valid. The caller guarantees the 'a
+    // lifetime doesn't outlive the original tensors.
+    let tensors = std::slice::from_raw_parts(tensors, len as usize);
+
+    tensors.iter().map(TensorDescriptor::from_rune_coral_tensor)
 }
 
 impl Debug for InferenceContext {
