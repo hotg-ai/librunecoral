@@ -1,4 +1,4 @@
-use std::borrow::Cow;
+use std::{borrow::Cow, os::raw::c_int};
 
 use crate::ffi;
 
@@ -6,7 +6,7 @@ use crate::ffi;
 #[derive(Debug, Clone, PartialEq)]
 pub struct TensorDescriptor<'a> {
     pub element_type: ElementType,
-    pub shape: Cow<'a, [ffi::size_t]>,
+    pub shape: Cow<'a, [c_int]>,
 }
 
 /// Possible element types that can be used in a [`Tensor`].
@@ -51,14 +51,14 @@ macro_rules! impl_tensor_element {
                 fn byte_buffer(slice: &[Self]) -> &[u8] {
                     let len = std::mem::size_of_val(slice);
                     unsafe {
-                        std::slice::from_raw_parts(slice.as_ptr() as *const u8, len)
+                        std::slice::from_raw_parts(slice.as_ptr().cast(), len)
                     }
                 }
 
                 fn byte_buffer_mut(slice: &mut [Self]) -> &mut [u8] {
                     let len = std::mem::size_of_val(slice);
                     unsafe {
-                        std::slice::from_raw_parts_mut(slice.as_mut_ptr() as *mut u8, len)
+                        std::slice::from_raw_parts_mut(slice.as_mut_ptr().cast(), len)
                     }
                 }
             }
@@ -81,16 +81,58 @@ impl From<ElementType> for ffi::RuneCoralElementType {
     }
 }
 
+impl From<ffi::RuneCoralElementType> for ElementType {
+    fn from(e: ffi::RuneCoralElementType) -> ElementType {
+        match e {
+            ffi::RuneCoralElementType__NoType => ElementType::NoType,
+            ffi::RuneCoralElementType__Float32 => ElementType::Float32,
+            ffi::RuneCoralElementType__Int32 => ElementType::Int32,
+            ffi::RuneCoralElementType__UInt8 => ElementType::UInt8,
+            ffi::RuneCoralElementType__Int64 => ElementType::Int64,
+            ffi::RuneCoralElementType__String => ElementType::String,
+            ffi::RuneCoralElementType__Bool => ElementType::Bool,
+            ffi::RuneCoralElementType__Int16 => ElementType::Int16,
+            ffi::RuneCoralElementType__Complex64 => ElementType::Complex64,
+            ffi::RuneCoralElementType__Int8 => ElementType::Int8,
+            ffi::RuneCoralElementType__Float16 => ElementType::Float16,
+            ffi::RuneCoralElementType__Float64 => ElementType::Float64,
+            ffi::RuneCoralElementType__Complex128 => ElementType::Complex128,
+            _ => ElementType::NoType,
+        }
+    }
+}
+
+impl<'a> TensorDescriptor<'a> {
+    pub fn from_rune_coral_tensor(tensor: &'a ffi::RuneCoralTensor) -> TensorDescriptor<'a> {
+        // Safety: Lifetimes ensure our TensorDescriptor's shape field won't
+        // accidentally outlive the original tensor.
+        unsafe {
+            TensorDescriptor {
+                element_type: ElementType::from(tensor.type_),
+                shape: Cow::Borrowed(std::slice::from_raw_parts(
+                    tensor.shape,
+                    tensor.rank as usize,
+                )),
+            }
+        }
+    }
+}
+
 /// An immutable reference to a tensor's backing buffer.
 #[derive(Debug, Clone, PartialEq)]
 pub struct Tensor<'a> {
     pub element_type: ElementType,
     pub buffer: &'a [u8],
-    pub shape: Cow<'a, [ffi::size_t]>,
+    pub shape: Cow<'a, [c_int]>,
 }
 
 impl<'a> Tensor<'a> {
-    pub(crate) fn as_coral_tensor(&self) -> ffi::RuneCoralTensor {
+    /// Get the FFI version of this tensor.
+    ///
+    /// # Safety
+    ///
+    /// The [`ffi::RuneCoralTensor`] can't outlive `self`.
+    pub(crate) unsafe fn as_coral_tensor(&self) -> ffi::RuneCoralTensor {
         ffi::RuneCoralTensor {
             type_: self.element_type.into(),
             data: self.buffer.as_ptr() as *mut _,
@@ -104,7 +146,7 @@ impl<'a> Tensor<'a> {
         Tensor {
             element_type: E::ELEMENT_TYPE,
             buffer: E::byte_buffer(slice),
-            shape: dimensions.iter().map(|&d| d as ffi::size_t).collect(),
+            shape: dimensions.iter().map(|&d| d as c_int).collect(),
         }
     }
 
@@ -122,11 +164,16 @@ impl<'a> Tensor<'a> {
 pub struct TensorMut<'a> {
     pub element_type: ElementType,
     pub buffer: &'a mut [u8],
-    pub shape: Cow<'a, [ffi::size_t]>,
+    pub shape: Cow<'a, [c_int]>,
 }
 
 impl<'a> TensorMut<'a> {
-    pub(crate) fn as_coral_tensor(&mut self) -> ffi::RuneCoralTensor {
+    /// Get the FFI version of this tensor.
+    ///
+    /// # Safety
+    ///
+    /// The [`ffi::RuneCoralTensor`] can't outlive `self`.
+    pub(crate) unsafe fn as_coral_tensor(&mut self) -> ffi::RuneCoralTensor {
         ffi::RuneCoralTensor {
             type_: self.element_type.into(),
             data: self.buffer.as_mut_ptr() as *mut _,
@@ -140,7 +187,7 @@ impl<'a> TensorMut<'a> {
         TensorMut {
             element_type: E::ELEMENT_TYPE,
             buffer: E::byte_buffer_mut(slice),
-            shape: dimensions.iter().map(|&d| d as ffi::size_t).collect(),
+            shape: dimensions.iter().map(|&d| d as c_int).collect(),
         }
     }
 

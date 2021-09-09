@@ -40,8 +40,7 @@ fn dist_dir() -> PathBuf {
         Ok(dir) => Path::new(&dir).to_path_buf(),
         _ => project_root()
             .join(std::env::var("OUT_DIR").unwrap())
-            .join("dist")
-            .to_path_buf(),
+            .join("dist"),
     }
 }
 

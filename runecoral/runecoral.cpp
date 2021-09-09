@@ -15,32 +15,29 @@ extern "C" {
 
 const char* RUNE_CORAL_MIME_TYPE__TFLITE = "application/tflite-model";
 
-RuneCoralLoadResult compare_tensors(const RuneCoralTensor &runeTensor, const TfLiteTensor &tfLiteTensor) {
-    if (static_cast<int>(runeTensor.type) != static_cast<int>(tfLiteTensor.type)) {
-        LOG_E("Tensor types mismatch")
-        return RuneCoralLoadResult__IncorrectArgumentTypes;
-    }
-
-    if (static_cast<int>(runeTensor.rank) != tfLiteTensor.dims->size) {
-        LOG_E("Tensor rank mismatch.");
-        return RuneCoralLoadResult__IncorrectArgumentSizes;
-    }
-
-    for (size_t i = 0; i < runeTensor.rank; i ++) {
-        if (runeTensor.shape[i] != tfLiteTensor.dims->data[i]) {
-            LOG_E("Tensor shape mismatch");
-            return RuneCoralLoadResult__IncorrectArgumentSizes;
-        }
-    }
-
-    return RuneCoralLoadResult__Ok;
+RuneCoralTensor to_runecoraltensor(const TfLiteTensor &tfLiteTensor) {
+    RuneCoralTensor result;
+    result.data = nullptr;
+    result.type = static_cast<RuneCoralElementType>(tfLiteTensor.type);
+    result.rank = tfLiteTensor.dims->size;
+    result.shape = tfLiteTensor.dims->data;
+    return result;
 }
 
 struct RuneCoralContext {
+    std::vector<char> model_buffer;
+    // Note: model has pointers into model_buffer
     std::unique_ptr<tflite::FlatBufferModel> model;
     tflite::ops::builtin::BuiltinOpResolver resolver;
     std::unique_ptr<tflite::Interpreter> interpreter;
     std::unique_ptr<AccelerationBackend> accelerationBackend;
+    std::vector<RuneCoralTensor> inputs;
+    std::vector<RuneCoralTensor> outputs;
+
+    // TODO: See if we can avoid this copy by keeping a reference to the
+    // original model data
+    RuneCoralContext(const char *model, size_t model_len)
+        : model_buffer(model, model + model_len) {}
 };
 
 int availableAccelerationBackends() {
@@ -78,8 +75,6 @@ bool accelerateInterpreter(const RuneCoralAccelerationBackend backend, RuneCoral
 }
 
 RuneCoralLoadResult create_inference_context(const char *mimetype, const void *model, size_t model_len,
-                                             const RuneCoralTensor *inputs, size_t num_inputs,
-                                             const RuneCoralTensor *outputs, size_t num_outputs,
                                              const RuneCoralAccelerationBackend backend,
                                              RuneCoralContext **inferenceContext) {
     if (strcmp(mimetype, RUNE_CORAL_MIME_TYPE__TFLITE) != 0) {
@@ -87,16 +82,18 @@ RuneCoralLoadResult create_inference_context(const char *mimetype, const void *m
         return RuneCoralLoadResult__IncorrectMimeType;
     }
 
-    if (!(model && inputs && outputs && inferenceContext)) {
+    if (!(model && inferenceContext)) {
         return RuneCoralLoadResult__InternalError;
     }
 
     RuneCoralLoadResult result = RuneCoralLoadResult__Ok;
 
-    RuneCoralContext *context = new RuneCoralContext();
+    RuneCoralContext *context = new RuneCoralContext{(const char *)model, model_len};
 
-    //TODO: See if this can be improved with a 0 copy alternative
-    context->model = tflite::FlatBufferModel::VerifyAndBuildFromBuffer(reinterpret_cast<const char*>(model), model_len);
+    context->model = tflite::FlatBufferModel::VerifyAndBuildFromBuffer(
+        context->model_buffer.data(),
+        context->model_buffer.size()
+    );
 
     // Create the interpreter
     if (context->model) {
@@ -111,9 +108,12 @@ RuneCoralLoadResult create_inference_context(const char *mimetype, const void *m
                     LOG_E("Unable to accelerate interpreter");
                 }
 
-                if (context->interpreter->inputs().size() != num_inputs || context->interpreter->outputs().size() != num_outputs) {
-                    LOG_E("Interpreter inputs/outputs do not match the number of inputs/outputs passed");
-                    result = RuneCoralLoadResult__IncorrectArgumentSizes;
+                for (size_t i = 0; i < context->interpreter->inputs().size(); i++) {
+                    context->inputs.push_back(to_runecoraltensor(*context->interpreter->input_tensor(i)));
+                }
+
+                for (size_t i = 0; i < context->interpreter->outputs().size(); i++) {
+                    context->outputs.push_back(to_runecoraltensor(*context->interpreter->output_tensor(i)));
                 }
             }
         } else {
@@ -125,32 +125,6 @@ RuneCoralLoadResult create_inference_context(const char *mimetype, const void *m
         result = RuneCoralLoadResult__InternalError;
     }
 
-    // Validate the input tensors of the interpreter
-    if (result == RuneCoralLoadResult__Ok) {
-        for (size_t i = 0; i < num_inputs; i++) {
-            auto inputTensor = context->interpreter->input_tensor(i);
-            result  = compare_tensors(inputs[i], *inputTensor);
-
-            if (result != RuneCoralLoadResult__Ok) {
-                LOG_E("Input tensor mismatch");
-                break;
-            }
-        }
-    }
-
-    // Validate the output tensors of the interpreter
-    if (result == RuneCoralLoadResult__Ok) {
-        for (size_t i = 0; i < num_outputs; i++) {
-            auto outputTensor = context->interpreter->output_tensor(i);
-            result = compare_tensors(outputs[i], *outputTensor);
-
-            if (result != RuneCoralLoadResult__Ok) {
-                LOG_E("Output tensor mismatch");
-                break;
-            }
-        }
-    }
-
     if (result != RuneCoralLoadResult__Ok) {
         delete context;
         context = nullptr;
@@ -160,6 +134,41 @@ RuneCoralLoadResult create_inference_context(const char *mimetype, const void *m
     }
 
     return result;
+}
+
+size_t inference_opcount(const RuneCoralContext * const inferenceContext) {
+    if (!inferenceContext) {
+        return 0;
+    }
+
+    size_t result = 0;
+    for (const auto* subgraph : *(inferenceContext->model->GetModel())->subgraphs()) {
+        for (const auto* op : *subgraph->operators()) {
+            result++;
+        }
+    }
+
+    return result;
+}
+
+size_t inference_inputs(const RuneCoralContext * const inferenceContext, const RuneCoralTensor ** tensors) {
+    if (!inferenceContext) {
+        *tensors = nullptr;
+        return 0;
+    }
+
+    *tensors = inferenceContext->inputs.data();
+    return inferenceContext->inputs.size();
+}
+
+size_t inference_outputs(const RuneCoralContext * const inferenceContext, const RuneCoralTensor ** tensors) {
+    if (!inferenceContext) {
+        *tensors = nullptr;
+        return 0;
+    }
+
+    *tensors = inferenceContext->outputs.data();
+    return inferenceContext->outputs.size();
 }
 
 void destroy_inference_context(RuneCoralContext *context) {

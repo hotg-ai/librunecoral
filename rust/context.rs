@@ -1,12 +1,12 @@
-use crate::{ffi, Error, Tensor, TensorMut, TensorDescriptor};
+use crate::{ffi, Error, Tensor, TensorDescriptor, TensorMut};
+use bitflags::bitflags;
 use std::{
     convert::TryInto,
-    ffi::{CString},
-    mem::MaybeUninit,
+    ffi::CString,
     fmt::{self, Debug, Formatter},
-    ptr::{self, NonNull},
+    mem::MaybeUninit,
+    ptr::NonNull,
 };
-use bitflags::bitflags;
 
 /// A backend which can run inference on a model.
 pub struct InferenceContext {
@@ -20,9 +20,7 @@ impl InferenceContext {
     ///
     /// This takes ownership of the `ctx` pointer and will deallocate it on
     /// drop.
-    pub(crate) unsafe fn new(
-        ctx: NonNull<ffi::RuneCoralContext>,
-    ) -> Self {
+    pub(crate) unsafe fn new(ctx: NonNull<ffi::RuneCoralContext>) -> Self {
         InferenceContext { ctx }
     }
 
@@ -54,15 +52,10 @@ impl InferenceContext {
     pub fn create_context(
         mimetype: &str,
         model: &[u8],
-        inputs: &[TensorDescriptor<'_>],
-        outputs: &[TensorDescriptor<'_>],
-        acceleration_backend: AccelerationBackend
+        acceleration_backend: AccelerationBackend,
     ) -> Result<InferenceContext, Error> {
         let mimetype = CString::new(mimetype)?;
         let mut inference_context = MaybeUninit::uninit();
-
-        let inputs = dummy_tensors(inputs);
-        let outputs = dummy_tensors(outputs);
 
         // Safety: We've ensured our inputs are sane by construction (i.e. Rust
         // doesn't let you create a null slice and all enums are exhaustive)
@@ -73,10 +66,6 @@ impl InferenceContext {
                 mimetype.as_ptr(),
                 model.as_ptr().cast(),
                 model.len() as ffi::size_t,
-                inputs.as_ptr(),
-                inputs.len() as ffi::size_t,
-                outputs.as_ptr(),
-                outputs.len() as ffi::size_t,
                 (acceleration_backend.bits() as i32).try_into().unwrap(),
                 inference_context.as_mut_ptr(),
             );
@@ -86,16 +75,55 @@ impl InferenceContext {
             let inference_context = inference_context.assume_init();
 
             Ok(InferenceContext::new(
-                NonNull::new(inference_context).expect("Should be initialized")
+                NonNull::new(inference_context).expect("Should be initialized"),
             ))
         }
     }
 
-    pub fn available_acceleration_backends () -> AccelerationBackend {
+    pub fn opcount(&self) -> u64 {
+        unsafe { ffi::inference_opcount(self.ctx.as_ptr()) }
+    }
+
+    pub fn inputs(&self) -> impl Iterator<Item = TensorDescriptor<'_>> + '_ {
         unsafe {
-            AccelerationBackend::from_bits(ffi::availableAccelerationBackends() as u32).unwrap()
+            let mut inputs = MaybeUninit::uninit();
+            let len = ffi::inference_inputs(self.ctx.as_ptr(), inputs.as_mut_ptr());
+
+            descriptors(inputs.assume_init(), len)
         }
     }
+
+    pub fn outputs(&self) -> impl Iterator<Item = TensorDescriptor<'_>> + '_ {
+        unsafe {
+            let mut outputs = MaybeUninit::uninit();
+            let len = ffi::inference_outputs(self.ctx.as_ptr(), outputs.as_mut_ptr());
+
+            descriptors(outputs.assume_init(), len)
+        }
+    }
+}
+
+/// Iterate over the [`TensorDescriptor`]s for a set of tensors.
+///
+/// # Safety
+///
+/// The caller must ensure the returned iterator (`'a`) doesn't outlive the data
+/// pointed to by `tensors`.
+unsafe fn descriptors<'a>(
+    tensors: *const ffi::RuneCoralTensor,
+    len: u64,
+) -> impl Iterator<Item = TensorDescriptor<'a>> {
+    // Safety: Assumes the tensors are valid. The caller guarantees the 'a
+    // lifetime doesn't outlive the original tensors.
+    let tensors = if len > 0 {
+        std::slice::from_raw_parts(tensors, len as usize)
+    } else {
+        // Note: The tensors pointer may be null when len == 0, so let's swap it
+        // out with an empty slice
+        &[]
+    };
+
+    tensors.iter().map(TensorDescriptor::from_rune_coral_tensor)
 }
 
 impl Debug for InferenceContext {
@@ -112,31 +140,10 @@ impl Drop for InferenceContext {
     }
 }
 
-/// Get a list of dummy empty tensors for a given a list of tensor descriptors
-pub fn dummy_tensors(inputs: &[TensorDescriptor<'_>]) -> Vec<ffi::RuneCoralTensor> {
-    let mut tensors = Vec::new();
-
-    for input in inputs {
-        let tensor = ffi::RuneCoralTensor {
-            type_: input.element_type as ffi::RuneCoralElementType,
-            data: ptr::null_mut(),
-            shape: input.shape.as_ptr(),
-            rank: input.shape.len() as _,
-        };
-        tensors.push(tensor);
-    }
-
-    tensors
-}
-
 #[derive(Debug, Copy, Clone, PartialEq, thiserror::Error)]
 pub enum LoadError {
     #[error("Incorrect mimetype")]
     IncorrectMimeType,
-    #[error("Incorrect argument types")]
-    IncorrectArgumentTypes,
-    #[error("Incorrect argument sizes")]
-    IncorrectArgumentSizes,
     #[error("Internal error")]
     InternalError,
     #[error("Unknown error {}", return_code)]
@@ -149,8 +156,6 @@ fn check_load_result(return_code: ffi::RuneCoralLoadResult) -> Result<(), LoadEr
     match return_code {
         ffi::RuneCoralLoadResult__Ok => Ok(()),
         ffi::RuneCoralLoadResult__IncorrectMimeType => Err(LoadError::IncorrectMimeType),
-        ffi::RuneCoralLoadResult__IncorrectArgumentSizes => Err(LoadError::IncorrectArgumentSizes),
-        ffi::RuneCoralLoadResult__IncorrectArgumentTypes => Err(LoadError::IncorrectArgumentTypes),
         ffi::RuneCoralLoadResult__InternalError => Err(LoadError::InternalError),
         _ => Err(LoadError::Other { return_code }),
     }
@@ -198,6 +203,15 @@ bitflags! {
         const NONE = ffi::RuneCoralAccelerationBackend__None as u32;
         const EDGETPU = ffi::RuneCoralAccelerationBackend__Edgetpu as u32;
         const GPU = ffi::RuneCoralAccelerationBackend__Gpu as u32;
+    }
+}
+
+impl AccelerationBackend {
+    /// Get all [`AccelerationBackend`]s that are available on this device.
+    pub fn currently_available() -> Self {
+        unsafe {
+            AccelerationBackend::from_bits(ffi::availableAccelerationBackends() as u32).unwrap()
+        }
     }
 }
 
