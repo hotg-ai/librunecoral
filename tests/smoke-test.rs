@@ -32,10 +32,15 @@ fn create_inference_context() {
 
 #[test]
 fn run_inference_using_the_sine_model() {
-    let mut model = include_bytes!("sinemodel.tflite");
+    let mut model = include_bytes!("sinemodel.tflite").to_vec();
 
     let mut ctx =
-        InferenceContext::create_context(mimetype(), model, AccelerationBackend::NONE).unwrap();
+        InferenceContext::create_context(mimetype(), &model, AccelerationBackend::NONE).unwrap();
+
+    // Note: If the inference context held a reference to our model, this would
+    // trigger a use-after-free.
+    model.fill(0xAA);
+    drop(model);
 
     let input = [0.5_f32];
     let mut output = [0_f32];
@@ -56,10 +61,13 @@ fn round(n: f32) -> f32 {
 #[test]
 fn query_available_hardware_backends() {
     let backends = AccelerationBackend::currently_available();
+
+    println!(
+        "test query_available_hardware_backends: supports edgetpu acceleration: {}",
+        backends.contains(AccelerationBackend::EDGETPU)
     );
     println!(
         "test query_available_hardware_backends: supports gpu acceleration: {}",
-        (backends & hotg_runecoral::AccelerationBackend::GPU
-            == hotg_runecoral::AccelerationBackend::GPU)
+        backends.contains(AccelerationBackend::GPU),
     );
 }
