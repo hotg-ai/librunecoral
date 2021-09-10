@@ -18,6 +18,13 @@ Windows 10:
 * pip install numpy
 * rust
 
+OS X:
+* git
+* bazel
+* XCode
+* pip install numpy
+* rust
+
 #### Getting the sources
 ```bash
 $ git clone https://github.com/hotg-ai/librunecoral
