@@ -44,6 +44,12 @@ fn dist_dir() -> PathBuf {
     }
 }
 
+fn bazel_cache_dir() -> PathBuf {
+    project_root()
+        .join(std::env::var("OUT_DIR").unwrap())
+        .join("bazel-cache")
+}
+
 fn target_arch() -> String {
     match std::env::var("CARGO_CFG_TARGET_ARCH").unwrap().as_ref() {
         "aarch64" => "arm64".to_string(),
@@ -105,6 +111,8 @@ fn make_librunecoral(target_os: &str) {
     cmd.arg(format!("librunecoral-{}-{}", target_os, target_arch()))
         .arg(format!("PREFIX={}", std::env::var("OUT_DIR").unwrap()));
 
+    cmd.arg(format!("BAZEL=bazel --output_base={}", bazel_cache_dir().to_str().unwrap()));
+
     if cfg!(feature = "edgetpu_acceleration") {
         cmd.arg("EDGETPU_ACCELERATION=true");
     }
@@ -120,6 +128,9 @@ fn make_librunecoral_windows() {
     fs::create_dir_all(librunecoral_path()).unwrap();
 
     let mut cmd = Command::new("bazel");
+
+    cmd.arg("--output_base")
+        .arg(bazel_cache_dir());
 
     cmd.arg("build")
         .arg("--config")

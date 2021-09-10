@@ -157,6 +157,9 @@ jobs:
           bazel shutdown
           wmic process where "name like '%java%'" delete
           wmic process where "name like '%bazel%'" delete
+          Write-VolumeCache C
+          Write-VolumeCache D
+          Start-Sleep -Seconds 3
 
   build_apple:
     runs-on: macos-latest
