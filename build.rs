@@ -111,7 +111,7 @@ fn make_librunecoral(target_os: &str) {
     cmd.arg(format!("librunecoral-{}-{}", target_os, target_arch()))
         .arg(format!("PREFIX={}", std::env::var("OUT_DIR").unwrap()));
 
-    cmd.arg(format!("BAZEL=bazel --output_base={}", bazel_cache_dir().to_str().unwrap()));
+    cmd.arg(format!("BAZEL=bazel --batch --output_base={}", bazel_cache_dir().to_str().unwrap()));
 
     if cfg!(feature = "edgetpu_acceleration") {
         cmd.arg("EDGETPU_ACCELERATION=true");
@@ -128,6 +128,8 @@ fn make_librunecoral_windows() {
     fs::create_dir_all(librunecoral_path()).unwrap();
 
     let mut cmd = Command::new("bazel");
+
+    cmd.arg("--batch");
 
     cmd.arg("--output_base")
         .arg(bazel_cache_dir());
