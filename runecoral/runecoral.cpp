@@ -100,13 +100,14 @@ RuneCoralLoadResult create_inference_context(const char *mimetype, const void *m
         tflite::InterpreterBuilder(*(context->model), context->resolver)(&(context->interpreter));
 
         if (context->interpreter) {
+            if (!accelerateInterpreter(backend, context)) {
+                LOG_E("Unable to accelerate interpreter");
+            }
+
             if (context->interpreter->AllocateTensors() != kTfLiteOk) {
                 LOG_E("Interpreter unable to allocate tensors");
                 result = RuneCoralLoadResult__InternalError;
             } else {
-                if (!accelerateInterpreter(backend, context)) {
-                    LOG_E("Unable to accelerate interpreter");
-                }
 
                 for (size_t i = 0; i < context->interpreter->inputs().size(); i++) {
                     context->inputs.push_back(to_runecoraltensor(*context->interpreter->input_tensor(i)));
