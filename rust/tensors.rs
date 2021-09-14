@@ -1,10 +1,12 @@
-use std::{borrow::Cow, os::raw::c_int};
+use std::{borrow::Cow, fmt, os::raw::c_int};
+use itertools::Itertools;
 
 use crate::ffi;
 
 /// The shape and element type of a [`Tensor`].
 #[derive(Debug, Clone, PartialEq)]
 pub struct TensorDescriptor<'a> {
+    //TODO: Add name, and quant fields
     pub element_type: ElementType,
     pub shape: Cow<'a, [c_int]>,
 }
@@ -115,6 +117,32 @@ impl<'a> TensorDescriptor<'a> {
                 )),
             }
         }
+    }
+}
+
+impl fmt::Display for TensorDescriptor<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        // Write strictly the first element into the supplied output
+        // stream: `f`. Returns `fmt::Result` which indicates whether the
+        // operation succeeded or failed. Note that `write!` uses syntax which
+        // is very similar to `println!`.
+        let element_kind = String::from(match self.element_type {
+            ElementType::Bool => "b",
+            ElementType::UInt8 => "u8",
+            ElementType::Int8 => "i8",
+            ElementType::Int16 => "i16",
+            ElementType::Int32 => "i32",
+            ElementType::Int64 => "i64",
+            ElementType::Float16 => "f16",
+            ElementType::Float32 => "f32",
+            ElementType::Float64 => "f64",
+            ElementType::Complex64 => "c64",
+            ElementType::Complex128 => "c128",
+            ElementType::String => "string",
+            _ => "?"
+        });
+
+        write!(f, "{}[{}]", element_kind, self.shape.iter().map(|&i| i.to_string()).join(","))
     }
 }
 

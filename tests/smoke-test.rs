@@ -3,6 +3,7 @@ use hotg_runecoral::{
     TensorDescriptor, TensorMut,
 };
 use std::borrow::Cow;
+use itertools::Itertools;
 
 #[test]
 fn create_inference_context_with_invalid_model() {
@@ -39,6 +40,10 @@ fn run_inference_using_the_sine_model() {
 
     // Note: If the inference context held a reference to our model, this would
     // trigger a use-after-free.
+
+    println!("Inputs: {}", ctx.inputs().join(", ") );
+    println!("Outputs: {}", ctx.inputs().join(", ") );
+
     model.fill(0xAA);
     drop(model);
 
