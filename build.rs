@@ -161,7 +161,7 @@ fn make_librunecoral_windows() {
     execute_cmd(cmd);
 
     if compilation_mode() == "dbg" {
-        println!("cargo:rustc-link-lib=MSVCRTD")
+        println!("cargo:rustc-link-lib=MSVCRTD");
     }
 
     fs::copy(
