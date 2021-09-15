@@ -128,7 +128,7 @@ impl<'a> TensorDescriptor<'a> {
 
 impl fmt::Display for ElementType {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let element_kind = String::from(match self {
+        let element_kind = match self {
             ElementType::Bool => "b",
             ElementType::UInt8 => "u8",
             ElementType::Int8 => "i8",
@@ -142,9 +142,9 @@ impl fmt::Display for ElementType {
             ElementType::Complex128 => "c128",
             ElementType::String => "string",
             _ => "?"
-        });
+        };
 
-        write!(f, "{}", element_kind)
+        f.write_str(element_kind)
     }
 }
 
