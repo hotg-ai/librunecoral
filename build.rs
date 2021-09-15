@@ -159,6 +159,11 @@ fn make_librunecoral_windows() {
     cmd.current_dir(project_root());
 
     execute_cmd(cmd);
+
+    if compilation_mode() == "dbg" {
+        println!("cargo:rustc-link-lib=MSVCRTD")
+    }
+
     fs::copy(
         project_root()
             .join("bazel-bin")

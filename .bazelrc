@@ -43,6 +43,7 @@ build:windows --copt=/w
 # For using M_* math constants on Windows with MSVC.
 build:windows --copt=/D_USE_MATH_DEFINES
 build:windows --host_copt=/D_USE_MATH_DEFINES
+build:windows --define=no_tensorflow_py_deps=true
 
 # macOS
 build:macos --cxxopt=-std=c++17
