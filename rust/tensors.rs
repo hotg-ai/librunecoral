@@ -153,7 +153,7 @@ impl fmt::Display for TensorDescriptor<'_> {
         write!(f, "{}: {}[{}]",
                 self.name.to_str().unwrap(),
                 self.element_type,
-                self.shape.iter().map(|&i| i.to_string()).join(","))
+                self.shape.iter().join(","))
     }
 }
 
