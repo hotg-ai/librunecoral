@@ -126,13 +126,9 @@ impl<'a> TensorDescriptor<'a> {
     }
 }
 
-impl fmt::Display for TensorDescriptor<'_> {
+impl fmt::Display for ElementType {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        // Write strictly the first element into the supplied output
-        // stream: `f`. Returns `fmt::Result` which indicates whether the
-        // operation succeeded or failed. Note that `write!` uses syntax which
-        // is very similar to `println!`.
-        let element_kind = String::from(match self.element_type {
+        let element_kind = String::from(match self {
             ElementType::Bool => "b",
             ElementType::UInt8 => "u8",
             ElementType::Int8 => "i8",
@@ -148,7 +144,16 @@ impl fmt::Display for TensorDescriptor<'_> {
             _ => "?"
         });
 
-        write!(f, "{}: {}[{}]", self.name.to_str().unwrap(), element_kind, self.shape.iter().map(|&i| i.to_string()).join(","))
+        write!(f, "{}", element_kind)
+    }
+}
+
+impl fmt::Display for TensorDescriptor<'_> {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}: {}[{}]",
+                self.name.to_str().unwrap(),
+                self.element_type,
+                self.shape.iter().map(|&i| i.to_string()).join(","))
     }
 }
 
