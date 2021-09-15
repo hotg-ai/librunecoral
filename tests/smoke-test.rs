@@ -4,6 +4,7 @@ use hotg_runecoral::{
 };
 use std::borrow::Cow;
 use itertools::Itertools;
+use std::ffi::CStr;
 
 #[test]
 fn create_inference_context_with_invalid_model() {
@@ -18,7 +19,15 @@ fn create_inference_context_with_invalid_model() {
 fn create_inference_context() {
     let model = include_bytes!("sinemodel.tflite");
 
-    let descriptors = vec![TensorDescriptor {
+    let input_descriptors = vec![TensorDescriptor {
+        name: CStr::from_bytes_with_nul(b"dense_2_input\0").unwrap(),
+        element_type: ElementType::Float32,
+        shape: Cow::Borrowed(&[1, 1]),
+    }];
+
+    
+    let output_descriptors = vec![TensorDescriptor {
+        name: CStr::from_bytes_with_nul(b"Identity\0").unwrap(),
         element_type: ElementType::Float32,
         shape: Cow::Borrowed(&[1, 1]),
     }];
@@ -26,8 +35,8 @@ fn create_inference_context() {
     let context =
         InferenceContext::create_context(mimetype(), model, AccelerationBackend::NONE).unwrap();
 
-    assert_eq!(context.inputs().collect::<Vec<_>>(), descriptors);
-    assert_eq!(context.outputs().collect::<Vec<_>>(), descriptors);
+    assert_eq!(context.inputs().collect::<Vec<_>>(), input_descriptors);
+    assert_eq!(context.outputs().collect::<Vec<_>>(), output_descriptors);
     assert_eq!(context.opcount(), 3);
 }
 

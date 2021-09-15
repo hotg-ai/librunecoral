@@ -1,12 +1,17 @@
 use std::{borrow::Cow, fmt, os::raw::c_int};
 use itertools::Itertools;
-
+use std::ffi::CStr;
 use crate::ffi;
 
 /// The shape and element type of a [`Tensor`].
 #[derive(Debug, Clone, PartialEq)]
 pub struct TensorDescriptor<'a> {
-    //TODO: Add name, and quant fields
+    // Only Add a name field to TensorDescriptor and not Tensor/TensorMut.
+    // This is because TensorDescriptors used to describe model's input/output_tensors
+    // Tensor and TensorMut can be passed around from rust to librunecoral too, but
+    // Since librunecoral doesn't really use the name field yet, we aren't exposing it as
+    // part of their API
+    pub name: &'a CStr,
     pub element_type: ElementType,
     pub shape: Cow<'a, [c_int]>,
 }
@@ -110,6 +115,7 @@ impl<'a> TensorDescriptor<'a> {
         // accidentally outlive the original tensor.
         unsafe {
             TensorDescriptor {
+                name: CStr::from_ptr(tensor.name),
                 element_type: ElementType::from(tensor.type_),
                 shape: Cow::Borrowed(std::slice::from_raw_parts(
                     tensor.shape,
@@ -142,7 +148,7 @@ impl fmt::Display for TensorDescriptor<'_> {
             _ => "?"
         });
 
-        write!(f, "{}[{}]", element_kind, self.shape.iter().map(|&i| i.to_string()).join(","))
+        write!(f, "{}: {}[{}]", self.name.to_str().unwrap(), element_kind, self.shape.iter().map(|&i| i.to_string()).join(","))
     }
 }
 
@@ -162,6 +168,7 @@ impl<'a> Tensor<'a> {
     /// The [`ffi::RuneCoralTensor`] can't outlive `self`.
     pub(crate) unsafe fn as_coral_tensor(&self) -> ffi::RuneCoralTensor {
         ffi::RuneCoralTensor {
+            name: std::ptr::null(),
             type_: self.element_type.into(),
             data: self.buffer.as_ptr() as *mut _,
             shape: self.shape.as_ptr(),
@@ -181,6 +188,7 @@ impl<'a> Tensor<'a> {
     /// Get a [`TensorDescriptor`] that describes this tensor.
     pub fn descriptor(&self) -> TensorDescriptor<'_> {
         TensorDescriptor {
+            name: CStr::from_bytes_with_nul(b"\0").unwrap(),
             element_type: self.element_type,
             shape: Cow::Borrowed(&self.shape),
         }
@@ -203,6 +211,7 @@ impl<'a> TensorMut<'a> {
     /// The [`ffi::RuneCoralTensor`] can't outlive `self`.
     pub(crate) unsafe fn as_coral_tensor(&mut self) -> ffi::RuneCoralTensor {
         ffi::RuneCoralTensor {
+            name: std::ptr::null(),
             type_: self.element_type.into(),
             data: self.buffer.as_mut_ptr() as *mut _,
             shape: self.shape.as_ptr(),
@@ -222,6 +231,7 @@ impl<'a> TensorMut<'a> {
     /// Get a [`TensorDescriptor`] that describes this tensor.
     pub fn descriptor(&self) -> TensorDescriptor<'_> {
         TensorDescriptor {
+            name: CStr::from_bytes_with_nul(b"\0").unwrap(),
             element_type: self.element_type,
             shape: Cow::Borrowed(&self.shape),
         }

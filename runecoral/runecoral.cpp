@@ -17,6 +17,7 @@ const char* RUNE_CORAL_MIME_TYPE__TFLITE = "application/tflite-model";
 
 RuneCoralTensor to_runecoraltensor(const TfLiteTensor &tfLiteTensor) {
     RuneCoralTensor result;
+    result.name = tfLiteTensor.name;
     result.data = nullptr;
     result.type = static_cast<RuneCoralElementType>(tfLiteTensor.type);
     result.rank = tfLiteTensor.dims->size;
