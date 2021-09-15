@@ -23,6 +23,10 @@ BAZEL ?= bazel
 
 ifeq ($(COMPILATION_MODE), opt)
 BAZEL_BUILD_FLAGS += --linkopt=-Wl,--strip-all
+else
+# From tensorflow's bazelrc
+# Workaround for: https://github.com/tensorflow/tensorflow/issues/33360
+BAZEL_BUILD_FLAGS += -c dbg --cxxopt -DTF_LITE_DISABLE_X86_NEON --copt -DDEBUG_BUILD
 endif
 
 EDGETPU_ACCELERATION ?= false

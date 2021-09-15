@@ -28,6 +28,8 @@ typedef enum {
 typedef struct {
   // What type of elements does this tensor contain?
   RuneCoralElementType type;
+  // C style string to the tensor's name
+  const char *name;
   // Opaque bytes containing the tensor's data.
   void *data;
   // An array containing the length of each of the tensor's dimensions.

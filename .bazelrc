@@ -10,7 +10,7 @@ build --enable_platform_specific_config
 build --define darwinn_portable=1
 build --verbose_failures
 build --sandbox_debug
-
+build --define=no_tensorflow_py_deps=true
 # Enable stack traces
 test --test_env="GTEST_INSTALL_FAILURE_SIGNAL_HANDLER=1"
 

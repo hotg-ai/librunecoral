@@ -50,6 +50,13 @@ fn bazel_cache_dir() -> PathBuf {
         .join("bazel-cache")
 }
 
+fn compilation_mode() -> String {
+    String::from(match std::env::var("PROFILE").unwrap().as_str() {
+        "release" => "opt",
+        _ => "dbg"
+    })
+}
+
 fn target_arch() -> String {
     match std::env::var("CARGO_CFG_TARGET_ARCH").unwrap().as_ref() {
         "aarch64" => "arm64".to_string(),
@@ -109,7 +116,8 @@ fn make_librunecoral(target_os: &str) {
 
     cmd.current_dir(project_root());
     cmd.arg(format!("librunecoral-{}-{}", target_os, target_arch()))
-        .arg(format!("PREFIX={}", std::env::var("OUT_DIR").unwrap()));
+        .arg(format!("PREFIX={}", std::env::var("OUT_DIR").unwrap()))
+        .arg(format!("COMPILATION_MODE={}", compilation_mode()));
 
     cmd.arg(format!("BAZEL=bazel --batch --output_base={}", bazel_cache_dir().to_str().unwrap()));
 
@@ -135,6 +143,8 @@ fn make_librunecoral_windows() {
         .arg(bazel_cache_dir());
 
     cmd.arg("build")
+        .arg("-c")
+        .arg(compilation_mode())
         .arg("--config")
         .arg("windows")
         .arg("//runecoral:runecoral");
@@ -149,6 +159,11 @@ fn make_librunecoral_windows() {
     cmd.current_dir(project_root());
 
     execute_cmd(cmd);
+
+    if compilation_mode() == "dbg" {
+        println!("cargo:rustc-link-lib=MSVCRTD");
+    }
+
     fs::copy(
         project_root()
             .join("bazel-bin")

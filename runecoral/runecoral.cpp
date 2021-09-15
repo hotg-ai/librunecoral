@@ -17,6 +17,7 @@ const char* RUNE_CORAL_MIME_TYPE__TFLITE = "application/tflite-model";
 
 RuneCoralTensor to_runecoraltensor(const TfLiteTensor &tfLiteTensor) {
     RuneCoralTensor result;
+    result.name = tfLiteTensor.name;
     result.data = nullptr;
     result.type = static_cast<RuneCoralElementType>(tfLiteTensor.type);
     result.rank = tfLiteTensor.dims->size;
@@ -100,13 +101,14 @@ RuneCoralLoadResult create_inference_context(const char *mimetype, const void *m
         tflite::InterpreterBuilder(*(context->model), context->resolver)(&(context->interpreter));
 
         if (context->interpreter) {
+            if (!accelerateInterpreter(backend, context)) {
+                LOG_E("Unable to accelerate interpreter");
+            }
+
             if (context->interpreter->AllocateTensors() != kTfLiteOk) {
                 LOG_E("Interpreter unable to allocate tensors");
                 result = RuneCoralLoadResult__InternalError;
             } else {
-                if (!accelerateInterpreter(backend, context)) {
-                    LOG_E("Unable to accelerate interpreter");
-                }
 
                 for (size_t i = 0; i < context->interpreter->inputs().size(); i++) {
                     context->inputs.push_back(to_runecoraltensor(*context->interpreter->input_tensor(i)));
