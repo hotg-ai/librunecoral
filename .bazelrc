@@ -10,7 +10,7 @@ build --enable_platform_specific_config
 build --define darwinn_portable=1
 build --verbose_failures
 build --sandbox_debug
-
+build --define=no_tensorflow_py_deps=true
 # Enable stack traces
 test --test_env="GTEST_INSTALL_FAILURE_SIGNAL_HANDLER=1"
 
@@ -43,7 +43,6 @@ build:windows --copt=/w
 # For using M_* math constants on Windows with MSVC.
 build:windows --copt=/D_USE_MATH_DEFINES
 build:windows --host_copt=/D_USE_MATH_DEFINES
-build:windows --define=no_tensorflow_py_deps=true
 
 # macOS
 build:macos --cxxopt=-std=c++17

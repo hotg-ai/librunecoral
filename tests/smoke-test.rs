@@ -3,7 +3,6 @@ use hotg_runecoral::{
     TensorDescriptor, TensorMut,
 };
 use std::borrow::Cow;
-use itertools::Itertools;
 use std::ffi::CStr;
 
 #[test]
@@ -25,7 +24,7 @@ fn create_inference_context() {
         shape: Cow::Borrowed(&[1, 1]),
     }];
 
-    
+
     let output_descriptors = vec![TensorDescriptor {
         name: CStr::from_bytes_with_nul(b"Identity\0").unwrap(),
         element_type: ElementType::Float32,

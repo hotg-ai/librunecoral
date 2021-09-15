@@ -115,7 +115,7 @@ impl<'a> TensorDescriptor<'a> {
         // accidentally outlive the original tensor.
         unsafe {
             TensorDescriptor {
-                name: CStr::from_ptr(tensor.name),
+                name: if tensor.name != std::ptr::null() { CStr::from_ptr(tensor.name) } else { CStr::from_bytes_with_nul(b"\0").unwrap() },
                 element_type: ElementType::from(tensor.type_),
                 shape: Cow::Borrowed(std::slice::from_raw_parts(
                     tensor.shape,
