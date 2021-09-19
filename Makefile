@@ -4,7 +4,7 @@ PREFIX ?= $(MAKEFILE_DIR)
 
 DOCKER_IMAGE_LINUX := docker.pkg.github.com/hotg-ai/librunecoral/runecoral-cross-linux
 DOCKER_IMAGE_ANDROID := docker.pkg.github.com/hotg-ai/librunecoral/runecoral-cross-android
-DOCKER_RUN := docker run --rm -v "`pwd`":"`pwd`" \
+DOCKER_RUN := docker run -i --rm -v "`pwd`":"`pwd`" \
            -v $$HOME:$$HOME \
            -v /etc/group:/etc/group:ro \
            -v /etc/passwd:/etc/passwd:ro \
