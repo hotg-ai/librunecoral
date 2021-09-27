@@ -13,6 +13,7 @@ DOCKER_RUN := docker run -i --rm -v "`pwd`":"`pwd`" \
            -e HOME=$$HOME \
            -e USER=$$USER \
            -w "`pwd`"
+
 # Allowed COMPILATION_MODE values: opt, dbg, fastbuild
 COMPILATION_MODE ?= opt
 ifeq ($(filter $(COMPILATION_MODE),opt dbg fastbuild),)
@@ -53,12 +54,21 @@ runecoral_header: runecoral/runecoral.h
 	install runecoral/runecoral.h $(PREFIX)/dist/include
 
 librunecoral-linux-%: runecoral/runecoral.h runecoral/runecoral.cpp runecoral/private/accelerationbackends.h runecoral/private/utils.h
-	$(DOCKER_RUN) $(DOCKER_IMAGE_LINUX) $(BAZEL) build -c $(COMPILATION_MODE) $(BAZEL_BUILD_FLAGS) --config=linux_$* //runecoral:runecoral
+	if [ "$$RUNECORAL_BUILD_ENVIRONMENT" = true ]; then\
+		cat /etc/passwd ;\
+		$(BAZEL) build -c $(COMPILATION_MODE) $(BAZEL_BUILD_FLAGS) --config=linux_$* //runecoral:runecoral ;\
+	else \
+		$(DOCKER_RUN) $(DOCKER_IMAGE_LINUX)-$* $(BAZEL) build -c $(COMPILATION_MODE) $(BAZEL_BUILD_FLAGS) --config=linux_$* //runecoral:runecoral ;\
+	fi
 	mkdir -p $(PREFIX)/dist/lib/linux/$*/
 	install bazel-bin/runecoral/librunecoral.a $(PREFIX)/dist/lib/linux/$*
 
 librunecoral-android-%: runecoral/runecoral.h runecoral/runecoral.cpp runecoral/private/accelerationbackends.h runecoral/private/utils.h
-	$(DOCKER_RUN) $(DOCKER_IMAGE_ANDROID) $(BAZEL) build -c $(COMPILATION_MODE) $(BAZEL_BUILD_FLAGS) --config=android_$* //runecoral:runecoral
+	if [ "$$RUNECORAL_BUILD_ENVIRONMENT" = true ]; then\
+		$(BAZEL) build -c $(COMPILATION_MODE) $(BAZEL_BUILD_FLAGS) --config=android_$* //runecoral:runecoral ;\
+	else \
+		$(DOCKER_RUN) $(DOCKER_IMAGE_ANDROID)-$* $(BAZEL) build -c $(COMPILATION_MODE) $(BAZEL_BUILD_FLAGS) --config=android_$* //runecoral:runecoral ;\
+	fi
 	mkdir -p $(PREFIX)/dist/lib/android/$*/
 	install bazel-bin/runecoral/librunecoral.a $(PREFIX)/dist/lib/android/$*
 
@@ -76,11 +86,13 @@ librunecoral-linux: librunecoral-linux-arm librunecoral-linux-arm64 librunecoral
 librunecoral-android: librunecoral-android-arm librunecoral-android-arm64 librunecoral-android-x86
 librunecoral-apple: librunecoral-macos-x86_64 librunecoral-ios-arm64
 
-docker-image-linux:
-	docker build $(DOCKER_IMAGE_OPTIONS) -t $(DOCKER_IMAGE_LINUX) -f $(MAKEFILE_DIR)/docker/Dockerfile.Linux $(MAKEFILE_DIR)/docker
+docker-image-linux-%:
+	docker build $(DOCKER_IMAGE_OPTIONS) -t $(DOCKER_IMAGE_LINUX)-$* -f $(MAKEFILE_DIR)/docker/cross.$*-unknown-linux-gnu.Dockerfile $(MAKEFILE_DIR)/docker
+docker-image-android-%:
+	docker build $(DOCKER_IMAGE_OPTIONS) -t $(DOCKER_IMAGE_ANDROID)-$* -f $(MAKEFILE_DIR)/docker/cross.$*-linux-android.Dockerfile $(MAKEFILE_DIR)/docker
 
-docker-image-android:
-	docker build $(DOCKER_IMAGE_OPTIONS) -t $(DOCKER_IMAGE_ANDROID) -f $(MAKEFILE_DIR)/docker/Dockerfile.Android $(MAKEFILE_DIR)/docker
+docker-image-linux: docker-image-linux-x86_64 docker-image-linux-aarch64
+docker-image-android: docker-image-android-x86_64 docker-image-android-aarch64
 
 clean:
 	rm -rf $(MAKEFILE_DIR)/bazel-* \

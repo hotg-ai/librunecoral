@@ -119,7 +119,7 @@ fn make_librunecoral(target_os: &str) {
         .arg(format!("PREFIX={}", std::env::var("OUT_DIR").unwrap()))
         .arg(format!("COMPILATION_MODE={}", compilation_mode()));
 
-    cmd.arg(format!("BAZEL=bazel --batch --output_base={}", bazel_cache_dir().to_str().unwrap()));
+    cmd.arg(format!("BAZEL=bazel --batch --output_user_root={}", bazel_cache_dir().to_str().unwrap()));
 
     if cfg!(feature = "edgetpu_acceleration") {
         cmd.arg("EDGETPU_ACCELERATION=true");
@@ -139,7 +139,7 @@ fn make_librunecoral_windows() {
 
     cmd.arg("--batch");
 
-    cmd.arg("--output_base")
+    cmd.arg("--output_user_root")
         .arg(bazel_cache_dir());
 
     cmd.arg("build")
@@ -203,6 +203,10 @@ fn main() {
 
     if target_os.as_str() == "linux" {
         println!("cargo:rustc-flags=-l dylib=stdc++");
+    }
+
+    if target_os.as_str() == "android" {
+        println!("cargo:rustc-flags=-l dylib=c++");
     }
 
     if target_os.as_str() == "macos" {
