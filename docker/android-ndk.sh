@@ -6,9 +6,6 @@ set -euo pipefail
 NDK_URL=https://dl.google.com/android/repository/android-ndk-r19c-linux-x86_64.zip
 
 main() {
-    local arch="${1}" \
-          api="${2}"
-
     local dependencies=(
         curl
         unzip
@@ -32,17 +29,10 @@ main() {
     unzip -q android-ndk-*.zip
     rm android-ndk-*.zip
 
-    pushd android-ndk-*
-    ./build/tools/make_standalone_toolchain.py \
-      --install-dir /android-ndk \
-      --arch "${arch}" \
-      --api "${api}"
-
     if (( ${#purge_list[@]} )); then
       apt-get purge --assume-yes --auto-remove "${purge_list[@]}"
     fi
 
-    popd
     popd
 
     mkdir -p /android/
