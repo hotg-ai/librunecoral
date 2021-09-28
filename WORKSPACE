@@ -68,3 +68,5 @@ http_archive(
     strip_prefix = "google-toolbox-for-mac-2.2.1",
     build_file = "@//third_party:google_toolbox_for_mac.BUILD",
 )
+
+android_ndk_repository(name = "androidndk")

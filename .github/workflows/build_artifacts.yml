@@ -10,11 +10,11 @@ on:
 
 jobs:
   build_linux:
-    runs-on: ubuntu-18.04
     strategy:
       matrix:
-        target: [linux, android]
+        target: [runecoral-cross-linux-x86_64, runecoral-cross-linux-aarch64, runecoral-cross-android-aarch64, runecoral-cross-android-x86_64]
 
+    runs-on: ubuntu-18.04
     steps:
       - uses: actions/checkout@v1
         with:
@@ -31,11 +31,6 @@ jobs:
             Cargo.lock
             .cache
 
-      - name: Install build dependencies
-        if: ${{ matrix.target == 'linux' }}
-        run: |
-          sudo apt-get install -y libegl1-mesa-dev libgles2-mesa-dev
-
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v1
         with:
@@ -43,50 +38,21 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build packages
-        run: |
-            make runecoral_header
-            make librunecoral-${{ matrix.target }} BAZEL="bazel --batch --output_base=$PWD/.cache" EDGETPU_ACCELERATION=true GPU_ACCELERATION=true
-
-      # libclang is needed by bindgen
-      # TODO: run the appropriate rust checks using cross for each matrix.target, and cpu architecture
-      - name: Install LLVM and Clang
-        if: ${{ matrix.target == 'linux' }}
-        uses: KyleMayes/install-llvm-action@v1
-        with:
-          version: "11.0"
-          directory: ${{ runner.temp }}/llvm
-
       - name: Install Rust
-        if: ${{ matrix.target == 'linux' }}
         uses: actions-rs/toolchain@v1
         with:
           profile: minimal
           toolchain: stable
           override: true
 
-      - name: Cargo Check
-        if: ${{ matrix.target == 'linux' }}
+      - name: Cargo Install cross
         uses: actions-rs/cargo@v1
-        env:
-          RUNECORAL_DIST_DIR: "${{ github.workspace }}/dist/"
         with:
-          command: check
-          args: --all-features
+          command: install
+          args: cross
 
-      - name: Cargo Test
-        if: ${{ matrix.target == 'linux' }}
-        uses: actions-rs/cargo@v1
-        env:
-          RUNECORAL_DIST_DIR: "${{ github.workspace }}/dist/"
-        with:
-          command: test
-          args: --all-features
-
-      - uses: actions/upload-artifact@v2
-        with:
-          name: ${{ github.run_id }}-librunecoral-artifacts-${{ matrix.target }}
-          path: dist/
+      - name: Cross Test
+        run: cross test ${{ matrix.target }}
 
   build_windows:
     runs-on: windows-2019
@@ -146,11 +112,6 @@ jobs:
           RUNECORAL_DIST_DIR: "${{ github.workspace }}/dist/"
         with:
           command: test
-
-      - uses: actions/upload-artifact@v2
-        with:
-          name: librunecoral-artifacts-windows-${{ github.run_id }}
-          path: dist/
 
       - name: Use GNU Tar from Msys
         run: |
@@ -213,8 +174,3 @@ jobs:
           RUNECORAL_DIST_DIR: "${{ github.workspace }}/dist/"
         with:
           command: test
-
-      - uses: actions/upload-artifact@v2
-        with:
-          name: ${{ github.run_id }}-librunecoral-artifacts-apple
-          path: dist/

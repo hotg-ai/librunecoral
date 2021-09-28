@@ -64,4 +64,4 @@ _objs  runecoral.lib  runecoral.params
 # Thanks to:
 * Webcoral
 * libedgetpu
-* mediapipe
+* rust-embedded/cross (Especially for their docker container build scripts)
