@@ -37,7 +37,8 @@ $ git submodule update --init --recursive
 $ make docker-image-linux
 $ docker image ls
 REPOSITORY                      TAG     IMAGE ID       CREATED         SIZE
-docker.pkg.github.com/hotg-ai/librunecoral/runecoral-cross-linux     latest  b431b6fa5895   7 hours ago     2.94GB
+tinyverseml/runecoral-cross-linux-aarch64                   latest         349cd3de00b3   2 days ago      2.9GB
+tinyverseml/runecoral-cross-linux-x86_64                    latest         4f5fe19abfb7   2 days ago      2.73GB
 ```
 
 ### Build the package for Linux
