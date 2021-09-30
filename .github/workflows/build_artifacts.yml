@@ -31,13 +31,6 @@ jobs:
             Cargo.lock
             .cache
 
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@v1
-        with:
-          registry: docker.pkg.github.com
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
       - name: Install Rust
         uses: actions-rs/toolchain@v1
         with:
