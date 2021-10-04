@@ -111,6 +111,8 @@ build:ios_arm64 --config=ios
 build:ios_arm64 --cpu=ios_arm64
 build:ios_arm64 --watchos_cpus=armv7k
 
+build:ios_aarch64 --config=ios_arm64
+
 build:ios_arm64e --config=ios
 build:ios_arm64e --cpu=ios_arm64e
 build:ios_arm64e --watchos_cpus=armv7k

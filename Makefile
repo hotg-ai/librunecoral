@@ -86,9 +86,9 @@ librunecoral-ios-%: $(SOURCES)
 	bazel build -c $(COMPILATION_MODE) $(BAZEL_BUILD_FLAGS) --config=ios_$* //runecoral:runecoral
 	install $(MAKEFILE_DIR)/bazel-bin/runecoral/librunecoral.a $(PREFIX)/dist/lib/ios/$*
 
-librunecoral-linux: librunecoral-linux-arm librunecoral-linux-aarch64 librunecoral-linux-x86_64
-librunecoral-android: librunecoral-android-arm librunecoral-android-aarch64 librunecoral-android-x86
-librunecoral-apple: librunecoral-macos-x86_64 librunecoral-ios-aarch64
+librunecoral-linux: librunecoral-linux-aarch64 librunecoral-linux-x86_64
+librunecoral-android: librunecoral-android-aarch64 librunecoral-android-x86_64
+librunecoral-apple: librunecoral-ios-aarch64 librunecoral-macos-x86_64
 
 docker-image-linux-%:
 	docker build $(DOCKER_IMAGE_OPTIONS) -t $(DOCKER_IMAGE_LINUX)-$* -f $(MAKEFILE_DIR)/docker/cross.$*-unknown-linux-gnu.Dockerfile $(MAKEFILE_DIR)/docker
