@@ -41,19 +41,23 @@ ifeq ($(GPU_ACCELERATION), true)
 BAZEL_BUILD_FLAGS += --define gpu_acceleration=true
 endif
 
+SOURCES = $(MAKEFILE_DIR)/runecoral/runecoral.h \
+	  $(MAKEFILE_DIR)/runecoral/private/accelerationbackends.h \
+	  $(MAKEFILE_DIR)/runecoral/private/utils.h \
+	  $(MAKEFILE_DIR)/runecoral/runecoral.cpp
+
 .PHONY: all \
         clean \
         help
-
 all: dist
 
 dist: runecoral_header librunecoral-linux librunecoral-android
 
-runecoral_header: runecoral/runecoral.h
+runecoral_header: $(MAKEFILE_DIR)/runecoral/runecoral.h
 	mkdir -p $(PREFIX)/dist/include
-	install runecoral/runecoral.h $(PREFIX)/dist/include
+	install $(MAKEFILE_DIR)/runecoral/runecoral.h $(PREFIX)/dist/include
 
-librunecoral-linux-%: runecoral/runecoral.h runecoral/runecoral.cpp runecoral/private/accelerationbackends.h runecoral/private/utils.h
+librunecoral-linux-%: $(SOURCES)
 	if [ "$$RUNECORAL_BUILD_ENVIRONMENT" = true ]; then\
 		cat /etc/passwd ;\
 		$(BAZEL) build -c $(COMPILATION_MODE) $(BAZEL_BUILD_FLAGS) --config=linux_$* //runecoral:runecoral ;\
@@ -61,30 +65,30 @@ librunecoral-linux-%: runecoral/runecoral.h runecoral/runecoral.cpp runecoral/pr
 		$(DOCKER_RUN) $(DOCKER_IMAGE_LINUX)-$* $(BAZEL) build -c $(COMPILATION_MODE) $(BAZEL_BUILD_FLAGS) --config=linux_$* //runecoral:runecoral ;\
 	fi
 	mkdir -p $(PREFIX)/dist/lib/linux/$*/
-	install bazel-bin/runecoral/librunecoral.a $(PREFIX)/dist/lib/linux/$*
+	install $(MAKEFILE_DIR)/bazel-bin/runecoral/librunecoral.a $(PREFIX)/dist/lib/linux/$*
 
-librunecoral-android-%: runecoral/runecoral.h runecoral/runecoral.cpp runecoral/private/accelerationbackends.h runecoral/private/utils.h
+librunecoral-android-%: $(SOURCES)
 	if [ "$$RUNECORAL_BUILD_ENVIRONMENT" = true ]; then\
 		$(BAZEL) build -c $(COMPILATION_MODE) $(BAZEL_BUILD_FLAGS) --config=android_$* //runecoral:runecoral ;\
 	else \
 		$(DOCKER_RUN) $(DOCKER_IMAGE_ANDROID)-$* $(BAZEL) build -c $(COMPILATION_MODE) $(BAZEL_BUILD_FLAGS) --config=android_$* //runecoral:runecoral ;\
 	fi
 	mkdir -p $(PREFIX)/dist/lib/android/$*/
-	install bazel-bin/runecoral/librunecoral.a $(PREFIX)/dist/lib/android/$*
+	install $(MAKEFILE_DIR)/bazel-bin/runecoral/librunecoral.a $(PREFIX)/dist/lib/android/$*
 
-librunecoral-macos-%: runecoral/runecoral.h runecoral/runecoral.cpp runecoral/private/accelerationbackends.h runecoral/private/utils.h
+librunecoral-macos-%: $(SOURCES)
 	mkdir -p $(PREFIX)/dist/lib/macos/$*/
 	bazel build -c $(COMPILATION_MODE) $(BAZEL_BUILD_FLAGS) --config=darwin_$* //runecoral:runecoral
-	install bazel-bin/runecoral/librunecoral.a $(PREFIX)/dist/lib/macos/$*
+	install $(MAKEFILE_DIR)/bazel-bin/runecoral/librunecoral.a $(PREFIX)/dist/lib/macos/$*
 
-librunecoral-ios-%: runecoral/runecoral.h runecoral/runecoral.cpp runecoral/private/accelerationbackends.h runecoral/private/utils.h
+librunecoral-ios-%: $(SOURCES)
 	mkdir -p $(PREFIX)/dist/lib/ios/$*/
 	bazel build -c $(COMPILATION_MODE) $(BAZEL_BUILD_FLAGS) --config=ios_$* //runecoral:runecoral
-	install bazel-bin/runecoral/librunecoral.a $(PREFIX)/dist/lib/ios/$*
+	install $(MAKEFILE_DIR)/bazel-bin/runecoral/librunecoral.a $(PREFIX)/dist/lib/ios/$*
 
-librunecoral-linux: librunecoral-linux-arm librunecoral-linux-arm64 librunecoral-linux-x86_64
-librunecoral-android: librunecoral-android-arm librunecoral-android-arm64 librunecoral-android-x86
-librunecoral-apple: librunecoral-macos-x86_64 librunecoral-ios-arm64
+librunecoral-linux: librunecoral-linux-arm librunecoral-linux-aarch64 librunecoral-linux-x86_64
+librunecoral-android: librunecoral-android-arm librunecoral-android-aarch64 librunecoral-android-x86
+librunecoral-apple: librunecoral-macos-x86_64 librunecoral-ios-aarch64
 
 docker-image-linux-%:
 	docker build $(DOCKER_IMAGE_OPTIONS) -t $(DOCKER_IMAGE_LINUX)-$* -f $(MAKEFILE_DIR)/docker/cross.$*-unknown-linux-gnu.Dockerfile $(MAKEFILE_DIR)/docker
@@ -104,3 +108,4 @@ help:
 	@echo "make librunecoral-linux    - Build native code"
 	@echo "make clean                 - Remove generated files"
 	@echo "make help                  - Print help message"
+

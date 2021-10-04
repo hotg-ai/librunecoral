@@ -52,7 +52,7 @@ librunecoral.so
 # To build for all supported CPU architectures under linux
 $ make librunecoral-linux
 $ ls dist/lib/linux
-arm  arm64  x86_64
+aarch64  x86_64
 ```
 
 ### Build the package for / on Windows
@@ -61,6 +61,7 @@ $ bazel build --config windows //runecoral:runecoral
 $ ls bazel-bin/runecoral/
 _objs  runecoral.lib  runecoral.params
 ```
+NOTE: On Windows you may need to clone librunecoral to C:\ or some such path in order to not run into Windows path length limitations
 
 # Thanks to:
 * Webcoral
