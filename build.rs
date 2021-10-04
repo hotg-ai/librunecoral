@@ -20,14 +20,14 @@ dist
     ├── android
     │   ├── arm
     │   │   └── librunecoral.a
-    │   ├── arm64
+    │   ├── aarch64
     │   │   └── librunecoral.a
     │   └── x86
     │       └── librunecoral.a
     └── linux
         ├── arm
         │   └── librunecoral.a
-        ├── arm64
+        ├── aarch64
         │   └── librunecoral.a
         └── x86_64
             └── librunecoral.a
@@ -58,10 +58,7 @@ fn compilation_mode() -> String {
 }
 
 fn target_arch() -> String {
-    match std::env::var("CARGO_CFG_TARGET_ARCH").unwrap().as_ref() {
-        "aarch64" => "arm64".to_string(),
-        _ => std::env::var("CARGO_CFG_TARGET_ARCH").unwrap(),
-    }
+    std::env::var("CARGO_CFG_TARGET_ARCH").unwrap()
 }
 
 fn librunecoral_path() -> PathBuf {
