@@ -27,6 +27,7 @@ build:linux --copt=-DEGL_NO_X11
 build:linux_x86_64 --config=linux
 build:linux_x86_64 --cpu=k8
 
+# FIXME: How to deal with armv6 ?
 build:linux_arm --config=linux
 build:linux_arm --copt=-ffp-contract=off
 build:linux_arm --cpu=armv7a

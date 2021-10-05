@@ -12,7 +12,7 @@ jobs:
   build_linux:
     strategy:
       matrix:
-        target: [runecoral-cross-linux-x86_64, runecoral-cross-linux-aarch64, runecoral-cross-android-aarch64, runecoral-cross-android-x86_64]
+        target: [armv7-unknown-linux-gnueabihf, aarch64-unknown-linux-gnu, x86_64-unknown-linux-gnu, aarch64-linux-android, x86_64-linux-android]
 
     runs-on: ubuntu-18.04
     steps:
@@ -45,7 +45,7 @@ jobs:
           args: cross
 
       - name: Cross Test
-        run: cross test ${{ matrix.target }}
+        run: cross test --target ${{ matrix.target }}
 
   build_windows:
     runs-on: windows-2019
