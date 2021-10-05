@@ -81,7 +81,7 @@ impl InferenceContext {
     }
 
     pub fn opcount(&self) -> u64 {
-        unsafe { ffi::inference_opcount(self.ctx.as_ptr()) }
+        unsafe { ffi::inference_opcount(self.ctx.as_ptr()).into() }
     }
 
     pub fn inputs(&self) -> impl Iterator<Item = TensorDescriptor<'_>> + '_ {
@@ -89,7 +89,7 @@ impl InferenceContext {
             let mut inputs = MaybeUninit::uninit();
             let len = ffi::inference_inputs(self.ctx.as_ptr(), inputs.as_mut_ptr());
 
-            descriptors(inputs.assume_init(), len)
+            descriptors(inputs.assume_init(), len.into())
         }
     }
 
@@ -98,7 +98,7 @@ impl InferenceContext {
             let mut outputs = MaybeUninit::uninit();
             let len = ffi::inference_outputs(self.ctx.as_ptr(), outputs.as_mut_ptr());
 
-            descriptors(outputs.assume_init(), len)
+            descriptors(outputs.assume_init(), len.into())
         }
     }
 }
