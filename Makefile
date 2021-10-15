@@ -59,7 +59,6 @@ runecoral_header: $(MAKEFILE_DIR)/runecoral/runecoral.h
 
 librunecoral-linux-%: $(SOURCES)
 	if [ "$$RUNECORAL_BUILD_ENVIRONMENT" = true ]; then\
-		cat /etc/passwd ;\
 		$(BAZEL) build -c $(COMPILATION_MODE) $(BAZEL_BUILD_FLAGS) --config=linux_$* //runecoral:runecoral ;\
 	else \
 		$(DOCKER_RUN) $(DOCKER_IMAGE_LINUX)-$* $(BAZEL) build -c $(COMPILATION_MODE) $(BAZEL_BUILD_FLAGS) --config=linux_$* //runecoral:runecoral ;\

@@ -127,6 +127,13 @@ build:darwin_x86_64 --macos_minimum_os=10.12
 build:darwin_x86_64 --cpu=darwin
 build:darwin_x86_64 --force_pic
 
+build:darwin_arm64 --force_pic
+build:darwin_arm64 --apple_platform_type=macos
+build:darwin_arm64 --macos_minimum_os=10.12
+build:darwin_arm64 --cpu=darwin_arm64
+
+build:darwin_aarch64 --config=darwin_arm64
+
 # This bazelrc file is meant to be written by a setup script.
 try-import %workspace%/.configure.bazelrc
 
