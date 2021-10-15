@@ -155,7 +155,7 @@ dependencies = [
 
 [[package]]
 name = "hotg-runecoral"
-version = "0.3.6-alpha.0"
+version = "0.3.6"
 dependencies = [
  "bindgen",
  "bitflags",
