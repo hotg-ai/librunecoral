@@ -9,8 +9,8 @@ new_local_repository(
     build_file = "third_party/libedgetpu/BUILD"
 )
 
-TENSORFLOW_COMMIT = "c256c071bb26e1e13b4666d1b3e229e110bc914a"
-TENSORFLOW_SHA256 = "ff0df77ec72676d3260502dd19f34518ecd65bb9ead4f7dfdf8bd11cff8640e3"
+TENSORFLOW_COMMIT = "3f878cff5b698b82eea85db2b60d65a2e320850e"
+TENSORFLOW_SHA256 = "21d919ad6d96fcc0477c8d4f7b1f7e4295aaec2986e035551ed263c2b1cd52ee"
 
 load("@libedgetpu//:workspace.bzl", "libedgetpu_dependencies")
 libedgetpu_dependencies(TENSORFLOW_COMMIT, TENSORFLOW_SHA256)
