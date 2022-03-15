@@ -30,8 +30,10 @@ build:linux_x86_64 --cpu=k8
 # FIXME: How to deal with armv6 ?
 build:linux_arm --config=linux
 build:linux_arm --copt=-ffp-contract=off
+build:linux_arm --copt=-mfp16-format=ieee
 build:linux_arm --cpu=armv7a
 
+build:linux_armv7 --config=linux_armv7
 
 build:linux_arm64 --config=linux
 build:linux_arm64 --copt=-ffp-contract=off

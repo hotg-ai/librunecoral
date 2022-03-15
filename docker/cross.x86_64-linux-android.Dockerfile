@@ -53,3 +53,13 @@ ARG BAZEL_VERSION=4.0.0
 RUN wget -O /bazel https://github.com/bazelbuild/bazel/releases/download/${BAZEL_VERSION}/bazel-${BAZEL_VERSION}-installer-linux-x86_64.sh && \
     bash /bazel && \
     rm -f /bazel
+
+RUN export CARGO_HOME=/tmp/cargo && export RUSTUP_HOME=/tmp/rustup && HOME=/tmp/ \
+    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs > rustup-init.sh && \
+    sh rustup-init.sh --default-toolchain stable -y && \
+    . $CARGO_HOME/env && \
+    rustup update && \
+    cargo install bindgen && \
+    mv $CARGO_HOME/bin/bindgen /usr/bin && \
+    rm -r "${RUSTUP_HOME}" "${CARGO_HOME}" && \
+    unset CARGO_HOME && unset RUSTUP_HOME
