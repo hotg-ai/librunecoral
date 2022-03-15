@@ -1,6 +1,6 @@
 [package]
 name = "hotg-runecoral"
-version = "0.3.9"
+version = "0.3.10"
 edition = "2018"
 description = "Bindings to the librunecoral library for doing hardware-accelerated inference."
 authors = ["The Rune Developers <developers@hotg.ai>"]
