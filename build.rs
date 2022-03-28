@@ -206,7 +206,7 @@ fn main() {
         println!("cargo:rustc-flags=-l dylib=c++");
     }
 
-    if target_os.as_str() == "macos" {
+    if target_os.as_str() == "macos" || target_os.as_str() == "ios" {
         println!("cargo:rustc-flags=-l dylib=c++");
     }
 
