@@ -1,5 +1,5 @@
 workspace(name = "runecoral")
-
+load("@bazel_tools//tools/build_defs/repo:git.bzl", "git_repository")
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 
 # Configure libedgetpu and downstream libraries (TF and Crosstool).
@@ -29,11 +29,10 @@ tf_workspace1()
 load("@org_tensorflow//tensorflow:workspace0.bzl", "tf_workspace0")
 tf_workspace0()
 
-
-http_archive(
+git_repository(
     name = "build_bazel_rules_apple",
-    sha256 = "a5f00fd89eff67291f6cd3efdc8fad30f4727e6ebb90718f3f05bbf3c3dd5ed7",
-    url = "https://github.com/bazelbuild/rules_apple/releases/download/0.33.0/rules_apple.0.33.0.tar.gz",
+    remote = "https://github.com/bazelbuild/rules_apple.git",
+    tag = "0.34.0",
 )
 
 load(
@@ -43,13 +42,10 @@ load(
 
 apple_rules_dependencies()
 
-http_archive(
+git_repository(
     name = "build_bazel_apple_support",
-    sha256 = "c604b75865c07f45828c7fffd5fdbff81415a9e84a68f71a9c1d8e3b2694e547",
-    urls = [
-        "https://storage.googleapis.com/mirror.tensorflow.org/github.com/bazelbuild/apple_support/releases/download/0.12.1/apple_support.0.12.1.tar.gz",
-        "https://github.com/bazelbuild/apple_support/releases/download/0.12.1/apple_support.0.12.1.tar.gz",
-    ],
+    remote = "https://github.com/bazelbuild/apple_support.git",
+    tag = "0.13.0",
 )
 
 load(
