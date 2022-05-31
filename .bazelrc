@@ -20,6 +20,7 @@ build:linux --host_cxxopt=-std=c++17
 build:linux --copt=-w
 build:linux --crosstool_top=@crosstool//:toolchains
 build:linux --force_pic
+build:linux --android_crosstool_top=
 
 # This needs to be added because of https://github.com/google/mediapipe/issues/305
 build:linux --copt=-DEGL_NO_X11
@@ -33,7 +34,7 @@ build:linux_arm --copt=-ffp-contract=off
 build:linux_arm --copt=-mfp16-format=ieee
 build:linux_arm --cpu=armv7a
 
-build:linux_armv7 --config=linux_armv7
+build:linux_armv7 --config=linux_arm
 
 build:linux_arm64 --config=linux
 build:linux_arm64 --copt=-ffp-contract=off
@@ -48,11 +49,13 @@ build:windows --copt=/w
 # For using M_* math constants on Windows with MSVC.
 build:windows --copt=/D_USE_MATH_DEFINES
 build:windows --host_copt=/D_USE_MATH_DEFINES
+build:windows --android_crosstool_top=
 
 # macOS
 build:macos --cxxopt=-std=c++17
 build:macos --host_cxxopt=-std=c++17
 build:macos --copt=-w
+build:macos --android_crosstool_top=
 
 # Sets the default Apple platform to macOS.
 build --apple_platform_type=macos
@@ -97,6 +100,7 @@ build:android_x86_64 --fat_apk_cpu=x86_64
 
 # iOS configs.
 build:ios --apple_platform_type=ios
+build:ios --android_crosstool_top=
 
 build:ios_i386 --config=ios
 build:ios_i386 --cpu=ios_i386
